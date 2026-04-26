@@ -1,9 +1,13 @@
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Min, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '../../auth/types/user-role.enum';
 import { KycStatus } from '../../../../generated/prisma';
 
 export class ListUsersQueryDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;

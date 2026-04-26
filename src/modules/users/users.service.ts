@@ -10,6 +10,37 @@ import { EmailService } from './email.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { KycStatus } from '../../../generated/prisma';
 
+export interface DonationHistoryItem {
+  id: string;
+  amount: string;
+  assetCode: string | null;
+  assetIssuer: string | null;
+  transactionHash: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  project: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: string;
+    goalAmount: string;
+    raisedAmount: string;
+    imageUrl: string | null;
+    walletAddress: string | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}
+
+export interface DonationHistoryResponse {
+  totalDonated: string;
+  donations: DonationHistoryItem[];
+}
+
 export interface UserProfileResponse {
   id: string;
   email: string;
@@ -214,6 +245,101 @@ export class UsersService {
       createdAt,
       updatedAt,
       profileCompletion,
+    };
+  }
+
+  async getUserDonationHistory(
+    userId: string,
+    query: { startDate?: string; endDate?: string },
+  ): Promise<DonationHistoryResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (query.startDate && query.endDate) {
+      const startDate = new Date(query.startDate);
+      const endDate = new Date(query.endDate);
+
+      if (startDate > endDate) {
+        throw new BadRequestException('startDate must be before endDate');
+      }
+    }
+
+    const createdAtFilter: any = {};
+    if (query.startDate) {
+      createdAtFilter.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      createdAtFilter.lte = new Date(query.endDate);
+    }
+
+    const where: any = { donorId: userId };
+    if (Object.keys(createdAtFilter).length > 0) {
+      where.createdAt = createdAtFilter;
+    }
+
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
+            status: true,
+            goalAmount: true,
+            raisedAmount: true,
+            imageUrl: true,
+            walletAddress: true,
+            startDate: true,
+            endDate: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const lifetimeAggregate = await this.prisma.donation.aggregate({
+      _sum: { amount: true },
+      where: { donorId: userId },
+    });
+
+    return {
+      totalDonated: lifetimeAggregate._sum.amount
+        ? lifetimeAggregate._sum.amount.toString()
+        : '0',
+      donations: donations.map((donation) => ({
+        id: donation.id,
+        amount: donation.amount.toString(),
+        assetCode: donation.assetCode,
+        assetIssuer: donation.assetIssuer,
+        transactionHash: donation.transactionHash,
+        status: donation.status,
+        createdAt: donation.createdAt,
+        updatedAt: donation.updatedAt,
+        project: {
+          id: donation.project.id,
+          title: donation.project.title,
+          description: donation.project.description,
+          category: donation.project.category,
+          status: donation.project.status,
+          goalAmount: donation.project.goalAmount.toString(),
+          raisedAmount: donation.project.raisedAmount.toString(),
+          imageUrl: donation.project.imageUrl,
+          walletAddress: donation.project.walletAddress,
+          startDate: donation.project.startDate,
+          endDate: donation.project.endDate,
+          createdAt: donation.project.createdAt,
+          updatedAt: donation.project.updatedAt,
+        },
+      })),
     };
   }
 

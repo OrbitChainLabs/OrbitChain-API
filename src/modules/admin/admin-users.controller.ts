@@ -45,4 +45,14 @@ export class AdminUsersController {
   updateKyc(@Param('id') id: string, @Body() dto: UpdateKycStatusDto) {
     return this.adminUsersService.updateKycStatus(id, dto);
   }
+
+  @Patch(':id/suspend')
+  suspendUser(@Param('id') id: string) {
+    return this.adminUsersService.suspendUser(id);
+  }
+
+  @Patch(':id/unsuspend')
+  unsuspendUser(@Param('id') id: string) {
+    return this.adminUsersService.unsuspendUser(id);
+  }
 }

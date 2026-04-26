@@ -1,12 +1,14 @@
-import { Controller, Get, Post, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { GetUserDonationsQueryDto } from './dto/get-user-donations-query.dto';
 
 interface JwtUser {
   id: string;
@@ -48,5 +50,14 @@ export class UsersController {
   @Post('kyc/submit')
   async submitKyc(@CurrentUser() user: JwtUser, @Body() dto: SubmitKycDto) {
     return this.usersService.submitKyc(user.id, dto.documentUrl);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('donations')
+  async getDonationHistory(
+    @CurrentUser() user: JwtUser,
+    @Query() query: GetUserDonationsQueryDto,
+  ) {
+    return this.usersService.getUserDonationHistory(user.id, query);
   }
 }

@@ -33,6 +33,14 @@ enum KycStatus {
   REJECTED
 }
 
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
 enum ProjectStatus {
   PENDING
   APPROVED
@@ -102,6 +110,7 @@ model User {
   emailTokens      EmailToken[]
   projects         Project[]
   donations        Donation[]
+  withdrawals       Withdrawal[]
   auditLogs        AuditLog[]
 
   @@map("users")
@@ -158,6 +167,7 @@ model Project {
   updatedAt       DateTime               @updatedAt
   statusHistory   ProjectStatusHistory[]
   donations       Donation[]
+  withdrawals     Withdrawal[]
   images          ProjectImage[]
 
   @@map("projects")
@@ -175,14 +185,28 @@ model Donation {
   amount         Decimal   @db.Decimal(18, 7)
   assetType      AssetType
   transactionHash String?   @unique
+  donor          User     @relation(fields: [donorId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("donations")
+  @@index([projectId])
+  @@index([donorId])
+  @@index([status])
+  donor          User      @relation(fields: [donorId], references: [id])
+  amount         Decimal   @db.Decimal(18, 7)
+  assetType      AssetType
+  assetCode      String?   // e.g., 'XLM', 'USD', etc.
+  assetIssuer    String?   // for non-native assets
+  transactionHash String   @unique
+  status         String    @default("PENDING") // PENDING, COMPLETED, FAILED
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@map("donations")
   @@index([transactionHash])
-  @@index([projectId])
-  @@index([donorId])
   @@index([createdAt])
+  @@index([status])
 }
 
 model ProjectStatusHistory {
@@ -214,6 +238,32 @@ model ProjectImage {
   @@map("project_images")
   @@index([projectId])
   @@index([createdAt])
+}
+
+model Withdrawal {
+  id              String         @id @default(uuid())
+  amount          Decimal        @db.Decimal(18, 7)
+  assetCode       String         @default("XLM")
+  assetIssuer     String?        // for non-native assets
+  status          WithdrawalStatus @default(PENDING)
+  projectId       String
+  project         Project        @relation(fields: [projectId], references: [id])
+  creatorId       String
+  creator         User           @relation(fields: [creatorId], references: [id])
+  walletAddress   String         // destination wallet address
+  transactionHash String?        @unique
+  rejectionReason String?
+  processedBy     String?        // admin ID who processed
+  processedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("withdrawals")
+  @@index([projectId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([transactionHash])
 }
 
 model AuditLog {

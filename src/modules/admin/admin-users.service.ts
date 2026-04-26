@@ -13,12 +13,19 @@ export class AdminUsersService {
   ) {}
 
   async listUsers(query: ListUsersQueryDto) {
-    const { role, kycStatus, page = 1, limit = 20 } = query;
+    const { search, role, kycStatus, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = { deletedAt: null };
     if (role) where.role = role;
     if (kycStatus) where.kycStatus = kycStatus;
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
@@ -84,5 +91,23 @@ export class AdminUsersService {
     }
 
     return { message: `KYC status updated to ${dto.status}`, kycStatus: updated.kycStatus };
+  }
+
+  async suspendUser(id: string) {
+    await this.getUser(id);
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: UserStatus.SUSPENDED },
+    });
+    return { message: 'User suspended successfully' };
+  }
+
+  async unsuspendUser(id: string) {
+    await this.getUser(id);
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: UserStatus.ACTIVE },
+    });
+    return { message: 'User unsuspended successfully' };
   }
 }
