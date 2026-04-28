@@ -79,6 +79,7 @@ enum AuditActionType {
   USER_KYC_STATUS_UPDATED
   USER_DELETED
   DONATION_CREATED
+  PLATFORM_SETTING_UPDATED
 }
 
 // ── Models ────────────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ model User {
   donations        Donation[]
   withdrawals       Withdrawal[]
   auditLogs        AuditLog[]
+  platformSettings PlatformSettings[]
 
   @@map("users")
   @@index([role])
@@ -283,4 +285,17 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+}
+
+model PlatformSettings {
+  id                   String   @id @default(uuid())
+  minimumGoal          Decimal  @default(100) @db.Decimal(18, 7)
+  platformFee          Decimal  @default(0.05) @db.Decimal(5, 4) // 5% fee
+  maxCampaignDuration  Int      @default(365) // days
+  updatedBy            String?
+  updatedByUser        User?    @relation(fields: [updatedBy], references: [id])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("platform_settings")
 }
