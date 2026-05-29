@@ -5,7 +5,9 @@ import {
   UnauthorizedException,
   HttpStatus,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import {
   ApiTags,
@@ -13,16 +15,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import KeyvRedis from '@keyv/redis';
+import Keyv from 'keyv';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthLogoutController {
-  private readonly keyv: KeyvRedis<string | undefined>;
-
-  constructor() {
-    this.keyv = new KeyvRedis(process.env.REDIS_URL || 'redis://localhost:6379');
-  }
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Keyv) {}
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
@@ -39,7 +37,7 @@ export class AuthLogoutController {
 
     const walletAddress = user.walletAddress;
     if (walletAddress) {
-      await this.keyv.del(`refresh:${walletAddress}`);
+      await this.cacheManager.del(`refresh:${walletAddress}`);
     }
   }
 }
