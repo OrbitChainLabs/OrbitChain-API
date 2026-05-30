@@ -21,7 +21,7 @@ interface VerifyDto {
 
 interface AuthResponse {
   accessToken: string;
-  tokenType: 'Bearer';
+  tokenType: 'Bearer' | 'bearer';
 }
 
 /**

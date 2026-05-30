@@ -7,16 +7,15 @@ interface ChallengeResponse {
   challenge: string;
 }
 
-/**
- * GET /auth/challenge?walletAddress=G...
- *
- * Returns a one-time challenge string for the client to sign with their
- * Stellar keypair. Format: `stellaraid:login:<nonce>:<timestamp>`
- */
+@ApiTags('auth')
 @Controller('auth')
 @Throttle({ default: { limit: 10, ttl: 60_000 } })
 export class AuthChallengeController {
   @Get('challenge')
+  @ApiOperation({ summary: 'Get authentication challenge for wallet address' })
+  @ApiQuery({ name: 'walletAddress', required: true, example: 'G...wallet-address' })
+  @ApiResponse({ status: 200, description: 'Returns challenge string' })
+  @ApiResponse({ status: 400, description: 'Invalid Stellar wallet address' })
   getChallenge(
     @Query('walletAddress') walletAddress: string,
   ): ChallengeResponse {
