@@ -6,8 +6,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { RedisModule } from './redis/redis.module';
 import { HealthModule } from './health/health.module';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { AppThrottlerModule } from './throttler/throttler.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { AuthModule } from './auth/auth.module';
     RedisModule,
     HealthModule,
     AuthModule,
-    UsersModule,
+    AppThrottlerModule,
+    ApiKeysModule,
   ],
   controllers: [AppController],
   providers: [AppService],

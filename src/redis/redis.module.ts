@@ -11,7 +11,9 @@ import KeyvRedis from '@keyv/redis';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         stores: [
-          new KeyvRedis(config.get<string>('REDIS_URL', 'redis://localhost:6379')),
+          new KeyvRedis(
+            config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+          ),
         ],
         ttl: 60000,
       }),

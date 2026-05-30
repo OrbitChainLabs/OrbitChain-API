@@ -6,9 +6,12 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
-import { UsersService } from '../users/users.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 
 interface VerifyDto {
   walletAddress: string;
@@ -24,14 +27,16 @@ interface AuthResponse {
 /**
  * POST /auth/verify
  *
- * Accepts { walletAddress, signedChallenge, challenge }, verifies the
- * Ed25519 signature using stellar-sdk, and returns a signed JWT on success.
+ * Verifies the Ed25519 signature, upserts the user on first login (#225),
+ * applies the admin-wallet allowlist (#222), and returns a signed JWT.
  */
 @Controller('auth')
+@Throttle({ default: { limit: 10, ttl: 60_000 } })
 export class AuthVerifyController {
   constructor(
     private readonly jwt: JwtService,
-    @Inject() private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
   ) {}
 
   @Post('verify')
@@ -54,10 +59,39 @@ export class AuthVerifyController {
       throw new UnauthorizedException('Signature verification failed');
     }
 
-    // Get or create user
-    await this.usersService.getOrCreateUser(walletAddress);
+    // Issue #222: resolve role from admin allowlist
+    const adminWallets = this.config
+      .get<string>('ADMIN_WALLETS', '')
+      .split(',')
+      .map((w) => w.trim())
+      .filter(Boolean);
 
-    const accessToken = this.jwt.sign({ sub: walletAddress, walletAddress });
+    const isAdmin = adminWallets.includes(walletAddress);
+    const roleFromAllowlist: UserRole | undefined = isAdmin
+      ? UserRole.ADMIN
+      : undefined;
+
+    // Issue #225: upsert user — create with defaults on first login
+    const displayName = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+
+    const user = await this.prisma.user.upsert({
+      where: { walletAddress },
+      create: {
+        walletAddress,
+        displayName,
+        role: roleFromAllowlist ?? UserRole.USER,
+      },
+      update: roleFromAllowlist ? { role: roleFromAllowlist } : {},
+    });
+
+    const role = roleFromAllowlist ?? user.role;
+
+    const accessToken = this.jwt.sign({
+      sub: user.id,
+      walletAddress,
+      role,
+    });
+
     return { accessToken, tokenType: 'Bearer' };
   }
 }

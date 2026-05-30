@@ -22,10 +22,12 @@ async function bootstrap() {
       serverAdapter,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const expressApp = app.getHttpAdapter().getInstance();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     expressApp.use('/admin/queues', serverAdapter.getRouter());
   }
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

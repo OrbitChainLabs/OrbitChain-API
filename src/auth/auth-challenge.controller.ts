@@ -1,6 +1,7 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { StrKey } from '@stellar/stellar-sdk';
+import { Throttle } from '@nestjs/throttler';
 
 interface ChallengeResponse {
   challenge: string;
@@ -13,6 +14,7 @@ interface ChallengeResponse {
  * Stellar keypair. Format: `stellaraid:login:<nonce>:<timestamp>`
  */
 @Controller('auth')
+@Throttle({ default: { limit: 10, ttl: 60_000 } })
 export class AuthChallengeController {
   @Get('challenge')
   getChallenge(

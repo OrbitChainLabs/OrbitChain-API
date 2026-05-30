@@ -1,17 +1,23 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from '../prisma/prisma.module';
 import { AuthChallengeController } from './auth-challenge.controller';
 import { AuthVerifyController } from './auth-verify.controller';
-import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '7d' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET', 'stellaraid-default-secret'),
+        signOptions: { expiresIn: '15m' },
+      }),
     }),
-    UsersModule,
+    PrismaModule,
   ],
   controllers: [AuthChallengeController, AuthVerifyController],
+  exports: [JwtModule],
 })
 export class AuthModule {}

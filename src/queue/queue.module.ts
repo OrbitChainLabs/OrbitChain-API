@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { QUEUE_EMAIL, QUEUE_CONTRACT_EVENTS, QUEUE_ANALYTICS } from './queue.constants';
+import {
+  QUEUE_EMAIL,
+  QUEUE_CONTRACT_EVENTS,
+  QUEUE_ANALYTICS,
+} from './queue.constants';
 
 const DEAD_LETTER_SETTINGS = {
   attempts: 3,
