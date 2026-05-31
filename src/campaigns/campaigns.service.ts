@@ -155,4 +155,33 @@ export class CampaignsService {
       limit,
     };
   }
+
+  async createCampaign(userId: string, dto: any) {
+    // Prepare milestone create data if provided
+    const milestoneCreates = (dto.milestones || []).map((m: any) => ({
+      title: m.title,
+      description: m.description ?? null,
+      targetAmount: m.targetAmount ?? undefined,
+      dueDate: m.dueDate ? new Date(m.dueDate) : undefined,
+    }));
+
+    const data: any = {
+      title: dto.title,
+      description: dto.description ?? dto.story ?? undefined,
+      imageUrl: dto.coverImageUrl ?? undefined,
+      category: dto.category ?? undefined,
+      goalAmount: dto.goalAmount ?? undefined,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      status: 'ACTIVE',
+      creatorId: userId,
+      milestones: milestoneCreates.length > 0 ? { create: milestoneCreates } : undefined,
+    };
+
+    const created = await this.prisma.campaign.create({
+      data,
+      include: { milestones: true },
+    });
+
+    return created;
+  }
 }

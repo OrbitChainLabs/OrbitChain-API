@@ -8,10 +8,44 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CampaignsService } from './campaigns.service';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { Body, Post } from '@nestjs/common';
+
+const FORBIDDEN_FIELDS = [
+  'goalAmount',
+  'contractId',
+  'milestones',
+  'endDate',
+];
 import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
 
 @Controller('campaigns')
 export class CampaignsController {
+  constructor(private readonly campaigns: CampaignsService) {}
+
+  @Post()
+  async create(
+    @Body() body: CreateCampaignDto,
+    @Req() req: Request & { user: any },
+  ) {
+    const userId = req.user?.sub as string;
+    return this.campaigns.createCampaign(userId, body);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: UpdateCampaignDto,
+    @Req() req: Request & { user: any },
+  ) {
+    // Reject attempts to update forbidden fields
+    const sentKeys = Object.keys(body || {});
+    const illegal = sentKeys.filter((k) => FORBIDDEN_FIELDS.includes(k));
+    if (illegal.length > 0) {
+      throw new BadRequestException(
+        `Cannot update protected fields: ${illegal.join(', ')}`,
+      );
   constructor(
     private readonly campaignsService: CampaignsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
