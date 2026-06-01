@@ -6,10 +6,8 @@ import {
   Param,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
-import { AdminGuard } from '../users/guards/admin.guard';
 import { DonationsService } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { DonationResponseDto, PlatformTipResponseDto } from './dto/donation.dto';
@@ -46,6 +44,7 @@ export class DonationsController {
     return this.donationsService.findById(id, userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':txHash/verify')
   async verifyDonation(
     @Param('txHash') txHash: string,
