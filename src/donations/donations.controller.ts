@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Body,
   Param,
   UseGuards,
   Request,
@@ -46,6 +45,7 @@ export class DonationsController {
     return this.donationsService.findById(id, userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':txHash/verify')
   async verifyDonation(
     @Param('txHash') txHash: string,
