@@ -44,6 +44,12 @@ enum DonationStatus {
   FAILED
 }
 
+enum TipStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
 enum MilestoneStatus {
   PENDING
   ACTIVE
@@ -110,6 +116,7 @@ model User {
   updates       Update[]       @relation("UpdateCreator")
   notifications Notification[]
   disputes      Dispute[]      @relation("DisputeFiler")
+  tips          PlatformTip[]
   newsLetterSub Newsletter?
   auditLogs     AuditLog[]
   apiKeys       ApiKey[]
@@ -178,15 +185,19 @@ model Donation {
   status      DonationStatus @default(PENDING)
   donorId     String
   campaignId  String
+  tipAmount   Decimal?       @db.Decimal(20, 7)
+  tipAsset    String?        @default("XLM")
+  tipId       String?
   donatedAt   DateTime       @default(now())
   confirmedAt DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   // Relations
-  donor    User      @relation(fields: [donorId], references: [id], onDelete: Cascade)
-  campaign Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donor    User         @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   disputes Dispute[]
+  tip      PlatformTip? @relation(fields: [tipId], references: [id])
 
   @@unique([donorId, campaignId, txHash])
   @@index([donorId])
@@ -194,6 +205,30 @@ model Donation {
   @@index([status])
   @@index([createdAt])
   @@map("donations")
+}
+
+/// PlatformTip model representing platform tips sent with donations
+model PlatformTip {
+  id           String    @id @default(uuid())
+  amount       Decimal   @db.Decimal(20, 7)
+  assetCode    String    @default("XLM")
+  txHash       String    @unique
+  status       TipStatus @default(PENDING)
+  donorId      String
+  donationId   String?  @unique
+  confirmedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  donor    User      @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  donation Donation? @relation(fields: [donationId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([amount])
+  @@map("platform_tips")
 }
 
 /// Milestone model representing campaign milestones
