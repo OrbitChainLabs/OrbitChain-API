@@ -2,13 +2,12 @@ import {
   Controller,
   Post,
   Get,
+  Body,
   Param,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
-import { AdminGuard } from '../users/guards/admin.guard';
 import { DonationsService } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { DonationResponseDto, PlatformTipResponseDto } from './dto/donation.dto';
