@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DonationsModule } from './donations/donations.module';
 
 @Module({
   imports: [
@@ -21,9 +22,13 @@ import { NotificationsModule } from './notifications/notifications.module';
     RedisModule,
     HealthModule,
     AuthModule,
-    CampaignsModule,
+    
     AdminModule,
     NotificationsModule,
+    AppThrottlerModule,
+    ApiKeysModule,
+    CampaignsModule,
+    DonationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
