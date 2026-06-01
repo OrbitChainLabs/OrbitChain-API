@@ -11,6 +11,8 @@ import { AppThrottlerModule } from './throttler/throttler.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { DonationsModule } from './donations/donations.module';
+import { UsersModule } from './users/users.module';
+import { MilestonesModule } from './milestones/milestones.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { DonationsModule } from './donations/donations.module';
     ApiKeysModule,
     CampaignsModule,
     DonationsModule,
+    UsersModule,
+    MilestonesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,6 +29,7 @@ export class DonationsService {
       assetCode: dto.assetCode || 'XLM',
       txHash: dto.txHash || null,
       status: 'PENDING',
+      isAnonymous: dto.isAnonymous ?? false,
       donor: { connect: { id: userId } },
       campaign: { connect: { id: dto.campaignId } },
     };
@@ -289,5 +290,246 @@ export class DonationsService {
     }
 
     return tip;
+  }
+
+  /**
+   * Get paginated donations for a campaign (public leaderboard)
+   */
+  async getCampaignDonations(
+    campaignId: string,
+    page: number = 1,
+    limit: number = 20,
+    sortBy: 'amount' | 'createdAt' = 'amount',
+    order: 'asc' | 'desc' = 'desc',
+  ) {
+    // Verify campaign exists
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found');
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Build orderBy
+    const orderByClause = {};
+    orderByClause[sortBy] = order;
+
+    // Get total count
+    const total = await this.prisma.donation.count({
+      where: {
+        campaignId,
+        status: 'CONFIRMED',
+      },
+    });
+
+    // Get paginated donations
+    const donations = await this.prisma.donation.findMany({
+      where: {
+        campaignId,
+        status: 'CONFIRMED',
+      },
+      include: {
+        donor: {
+          select: {
+            walletAddress: true,
+          },
+        },
+      },
+      orderBy: orderByClause,
+      skip,
+      take: limit,
+    });
+
+    // Add rank and format response; mask wallet for anonymous donations
+    const donationsWithRank = donations.map((donation, index) => ({
+      rank: skip + index + 1,
+      walletAddress: donation.isAnonymous
+        ? 'Anonymous'
+        : (donation.donor?.walletAddress ?? 'Anonymous'),
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      createdAt: donation.createdAt,
+      txHash: donation.txHash,
+    }));
+
+    return {
+      donations: donationsWithRank,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get user's personal donation history with filters and sorting
+   */
+  async getUserDonationHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+    sortBy: 'amount' | 'createdAt' = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.DonationWhereInput = {
+      donorId: userId,
+      status: 'CONFIRMED',
+    };
+
+    if (campaignId) {
+      where.campaignId = campaignId;
+    }
+
+    if (startDate || endDate) {
+      where.donatedAt = {};
+      if (startDate) {
+        where.donatedAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.donatedAt.lte = new Date(endDate);
+      }
+    }
+
+    // Build orderBy
+    const orderByClause = {};
+    orderByClause[sortBy] = order;
+
+    // Get total count
+    const total = await this.prisma.donation.count({ where });
+
+    // Get paginated donations
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: orderByClause,
+      skip,
+      take: limit,
+    });
+
+    // Format response
+    const donationHistory = donations.map((donation) => ({
+      id: donation.id,
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      status: donation.status,
+      campaignId: donation.campaignId,
+      campaignTitle: donation.campaign?.title || 'Unknown Campaign',
+      campaignStatus: donation.campaign?.status || 'UNKNOWN',
+      txHash: donation.txHash,
+      donatedAt: donation.donatedAt,
+      createdAt: donation.createdAt,
+    }));
+
+    // Calculate summary
+    const totalDonatedResult = await this.prisma.donation.aggregate({
+      where,
+      _sum: {
+        amount: true,
+      },
+      _count: true,
+    });
+
+    const totalDonated = totalDonatedResult._sum.amount?.toString() || '0';
+    const totalDonations = totalDonatedResult._count;
+    const averageDonation =
+      totalDonations > 0
+        ? (parseFloat(totalDonated) / totalDonations).toString()
+        : '0';
+
+    return {
+      donations: donationHistory,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+      summary: {
+        totalDonated,
+        totalDonations,
+        averageDonation,
+      },
+    };
+  }
+
+  /**
+   * Export user's donation history as CSV
+   */
+  async exportUserDonationsAsCSV(
+    userId: string,
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<string> {
+    // Build where clause
+    const where: Prisma.DonationWhereInput = {
+      donorId: userId,
+      status: 'CONFIRMED',
+    };
+
+    if (campaignId) {
+      where.campaignId = campaignId;
+    }
+
+    if (startDate || endDate) {
+      where.donatedAt = {};
+      if (startDate) {
+        where.donatedAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.donatedAt.lte = new Date(endDate);
+      }
+    }
+
+    // Get all donations for export
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: {
+        campaign: {
+          select: {
+            title: true,
+          },
+        },
+      },
+      orderBy: { donatedAt: 'desc' },
+    });
+
+    // Build CSV header
+    const headers = ['Campaign', 'Amount', 'Asset', 'Date', 'Tx Hash', 'USD Equivalent'];
+    const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
+
+    // Add data rows (USD equivalent would typically be fetched from cache/DB)
+    for (const donation of donations) {
+      const row = [
+        `"${donation.campaign?.title || 'Unknown'}"`,
+        donation.amount.toString(),
+        donation.assetCode,
+        donation.donatedAt.toISOString().split('T')[0], // Date only
+        `"${donation.txHash || ''}"`,
+        '0.00', // Placeholder - in production, fetch from price cache
+      ];
+      rows.push(row.join(','));
+    }
+
+    return rows.join('\n');
   }
 }

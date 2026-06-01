@@ -40,6 +40,7 @@ async function bootstrap() {
         new BullAdapter(new Queue('email')),
         new BullAdapter(new Queue('contract-events')),
         new BullAdapter(new Queue('analytics')),
+        new BullAdapter(new Queue('export')),
       ],
       serverAdapter,
     });

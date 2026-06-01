@@ -17,6 +17,8 @@ import { CampaignsService } from './campaigns.service';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
+import { DonationsService } from '../donations/donations.service';
+import { GetCampaignDonationsQueryDto, GetCampaignDonationsResponseDto } from '../donations/dto/get-campaign-donations.dto';
 
 const FORBIDDEN_FIELDS = [
   'goalAmount',
@@ -29,6 +31,7 @@ const FORBIDDEN_FIELDS = [
 export class CampaignsController {
   constructor(
     private readonly campaignsService: CampaignsService,
+    private readonly donationsService: DonationsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -75,6 +78,24 @@ export class CampaignsController {
     await this.cacheManager.set(cacheKey, result, 30000);
 
     return result;
+  }
+
+  /**
+   * GET /campaigns/:campaignId/donations
+   * Get paginated donations for a campaign (public leaderboard)
+   */
+  @Get(':campaignId/donations')
+  async getCampaignDonations(
+    @Param('campaignId') campaignId: string,
+    @Query() query: GetCampaignDonationsQueryDto,
+  ): Promise<GetCampaignDonationsResponseDto> {
+    return this.donationsService.getCampaignDonations(
+      campaignId,
+      query.page,
+      query.limit,
+      query.sortBy,
+      query.order,
+    );
   }
 
   private generateCacheKey(query: BrowseCampaignsQueryDto): string {

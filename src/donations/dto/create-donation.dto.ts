@@ -2,7 +2,7 @@ import {
   IsString,
   IsOptional,
   MaxLength,
-  IsNumber,
+  IsBoolean,
   IsNotEmpty,
 } from 'class-validator';
 
@@ -22,6 +22,10 @@ export class CreateDonationDto {
   @IsString()
   @MaxLength(200)
   txHash?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 
   @IsOptional()
   @IsString()

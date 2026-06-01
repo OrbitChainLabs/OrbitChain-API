@@ -5,6 +5,7 @@ import {
   QUEUE_EMAIL,
   QUEUE_CONTRACT_EVENTS,
   QUEUE_ANALYTICS,
+  QUEUE_EXPORT,
 } from './queue.constants';
 
 const DEAD_LETTER_SETTINGS = {
@@ -27,6 +28,7 @@ const DEAD_LETTER_SETTINGS = {
       { name: QUEUE_EMAIL, defaultJobOptions: DEAD_LETTER_SETTINGS },
       { name: QUEUE_CONTRACT_EVENTS, defaultJobOptions: DEAD_LETTER_SETTINGS },
       { name: QUEUE_ANALYTICS, defaultJobOptions: DEAD_LETTER_SETTINGS },
+      { name: QUEUE_EXPORT, defaultJobOptions: DEAD_LETTER_SETTINGS },
     ),
   ],
   exports: [BullModule],

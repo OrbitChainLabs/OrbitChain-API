@@ -55,6 +55,15 @@ enum MilestoneStatus {
   ACTIVE
   COMPLETED
   FAILED
+  UNLOCKED
+}
+
+enum FundReleaseStatus {
+  PENDING
+  APPROVED
+  RELEASED
+  REJECTED
+  CANCELLED
 }
 
 enum NotificationType {
@@ -120,6 +129,7 @@ model User {
   newsLetterSub Newsletter?
   auditLogs     AuditLog[]
   apiKeys       ApiKey[]
+  fundReleases  FundRelease[]
 
   @@index([email])
   @@index([role])
@@ -163,11 +173,12 @@ model Campaign {
   updatedAt    DateTime       @updatedAt
 
   // Relations
-  creator    User        @relation("CampaignCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  donations  Donation[]
-  milestones Milestone[]
-  updates    Update[]
-  disputes   Dispute[]
+  creator      User            @relation("CampaignCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  donations    Donation[]
+  milestones   Milestone[]
+  updates      Update[]
+  disputes     Dispute[]
+  fundReleases FundRelease[]
 
   @@index([creatorId])
   @@index([status])
@@ -183,6 +194,7 @@ model Donation {
   assetCode   String         @default("XLM")
   txHash      String?        @unique
   status      DonationStatus @default(PENDING)
+  isAnonymous Boolean        @default(false)
   donorId     String
   campaignId  String
   tipAmount   Decimal?       @db.Decimal(20, 7)
@@ -245,11 +257,42 @@ model Milestone {
   updatedAt    DateTime        @updatedAt
 
   // Relations
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign      Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  fundReleases  FundRelease[]
 
   @@index([campaignId])
   @@index([status])
   @@map("milestones")
+}
+
+/// FundRelease model representing requests to release funds for milestones
+model FundRelease {
+  id            String            @id @default(uuid())
+  milestoneId   String
+  campaignId    String
+  creatorId     String
+  amount        Decimal           @db.Decimal(20, 7)
+  status        FundReleaseStatus @default(PENDING)
+  signaturePayload String?         // JSON stringified signature for on-chain verification
+  txHash        String?           @unique
+  releaseReason String?
+  approvedBy    String?           // Admin ID who approved (if applicable)
+  approvedAt    DateTime?
+  releasedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  campaign  Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator   User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("fund_releases")
 }
 
 /// Update model representing campaign progress updates
