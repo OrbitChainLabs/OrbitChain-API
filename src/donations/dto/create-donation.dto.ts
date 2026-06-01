@@ -2,15 +2,17 @@ import {
   IsString,
   IsOptional,
   MaxLength,
-  IsDecimalString,
-  IsIn,
+  IsNumber,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class CreateDonationDto {
   @IsString()
+  @IsNotEmpty()
   campaignId: string;
 
-  @IsDecimalString()
+  @IsString()
+  @IsNotEmpty()
   amount: string;
 
   @IsOptional()
@@ -22,7 +24,7 @@ export class CreateDonationDto {
   txHash?: string;
 
   @IsOptional()
-  @IsDecimalString()
+  @IsString()
   tipAmount?: string;
 
   @IsOptional()
