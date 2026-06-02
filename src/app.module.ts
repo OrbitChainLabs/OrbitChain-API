@@ -12,6 +12,8 @@ import { StellarModule } from './stellar/stellar.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DonationsModule } from './donations/donations.module';
+import { UsersModule } from './users/users.module';
+import { MilestonesModule } from './milestones/milestones.module';
 
 @Module({
   imports: [
@@ -30,7 +32,8 @@ import { DonationsModule } from './donations/donations.module';
     ApiKeysModule,
     CampaignsModule,
     DonationsModule,
-    StellarModule,
+    UsersModule,
+    MilestonesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

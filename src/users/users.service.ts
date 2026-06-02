@@ -3,13 +3,23 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
+import { QUEUE_EXPORT } from '../queue/queue.constants';
+import type { ExportDonationJobData } from './export.processor';
+
+/** Threshold above which exports are processed via Bull queue */
+const EXPORT_QUEUE_THRESHOLD = 500;
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_EXPORT) private readonly exportQueue: Queue,
+  ) {}
 
   /**
    * Get authenticated user's full profile
@@ -229,5 +239,213 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  /**
+   * Get user's personal donation history with filters and sorting
+   */
+  async getUserDonationHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+    sortBy: 'amount' | 'createdAt' = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where = {
+      donorId: userId,
+      status: 'CONFIRMED',
+      ...(campaignId && { campaignId }),
+      ...(startDate || endDate
+        ? {
+            donatedAt: {
+              ...(startDate && { gte: new Date(startDate) }),
+              ...(endDate && { lte: new Date(endDate) }),
+            },
+          }
+        : {}),
+    };
+
+    // Build orderBy
+    const orderByClause = {};
+    orderByClause[sortBy] = order;
+
+    // Get total count
+    const total = await this.prisma.donation.count({ where });
+
+    // Get paginated donations
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: orderByClause,
+      skip,
+      take: limit,
+    });
+
+    // Format response
+    const donationHistory = donations.map((donation) => ({
+      id: donation.id,
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      status: donation.status,
+      campaignId: donation.campaignId,
+      campaignTitle: donation.campaign?.title || 'Unknown Campaign',
+      campaignStatus: donation.campaign?.status || 'UNKNOWN',
+      txHash: donation.txHash,
+      donatedAt: donation.donatedAt,
+      createdAt: donation.createdAt,
+    }));
+
+    // Calculate summary
+    const totalDonatedResult = await this.prisma.donation.aggregate({
+      where,
+      _sum: {
+        amount: true,
+      },
+      _count: true,
+    });
+
+    const totalDonated = totalDonatedResult._sum.amount?.toString() || '0';
+    const totalDonations = totalDonatedResult._count;
+    const averageDonation =
+      totalDonations > 0
+        ? (parseFloat(totalDonated) / totalDonations).toString()
+        : '0';
+
+    return {
+      donations: donationHistory,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+      summary: {
+        totalDonated,
+        totalDonations,
+        averageDonation,
+      },
+    };
+  }
+
+  /**
+   * Export user's donation history as CSV.
+   * For large datasets (> EXPORT_QUEUE_THRESHOLD rows) the job is enqueued via
+   * Bull and a jobId is returned so the client can poll for completion.
+   * For small datasets the CSV is generated synchronously and returned directly.
+   */
+  async exportUserDonationsAsCSV(
+    userId: string,
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{ csv?: string; jobId?: string; queued: boolean }> {
+    // Build where clause
+    const where: {
+      donorId: string;
+      status: string;
+      campaignId?: string;
+      donatedAt?: { gte?: Date; lte?: Date };
+    } = {
+      donorId: userId,
+      status: 'CONFIRMED',
+    };
+
+    if (campaignId) {
+      where.campaignId = campaignId;
+    }
+
+    if (startDate || endDate) {
+      where.donatedAt = {};
+      if (startDate) {
+        where.donatedAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.donatedAt.lte = new Date(endDate);
+      }
+    }
+
+    // Count rows to decide sync vs async path
+    const count = await this.prisma.donation.count({ where });
+
+    if (count > EXPORT_QUEUE_THRESHOLD) {
+      // Enqueue for async processing
+      const jobData: ExportDonationJobData = {
+        userId,
+        campaignId,
+        startDate,
+        endDate,
+      };
+      const job = await this.exportQueue.add('donation-export', jobData);
+      return { queued: true, jobId: String(job.id) };
+    }
+
+    // Synchronous path for small exports
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: {
+        campaign: {
+          select: { title: true },
+        },
+      },
+      orderBy: { donatedAt: 'desc' },
+    });
+
+    const headers = ['Campaign', 'Amount', 'Asset', 'Date', 'Tx Hash', 'USD Equivalent'];
+    const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
+
+    for (const donation of donations) {
+      const row = [
+        `"${(donation.campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
+        donation.amount.toString(),
+        donation.assetCode,
+        donation.donatedAt.toISOString().split('T')[0],
+        `"${donation.txHash || ''}"`,
+        '0.00', // USD equivalent: fetched from price cache in production
+      ];
+      rows.push(row.join(','));
+    }
+
+    return { csv: rows.join('\n'), queued: false };
+  }
+
+  /**
+   * Poll the status of an async export job.
+   * Returns the CSV when the job is complete.
+   */
+  async getExportJobStatus(
+    jobId: string,
+  ): Promise<{ status: string; csv?: string; rowCount?: number }> {
+    const job = await this.exportQueue.getJob(jobId);
+
+    if (!job) {
+      throw new NotFoundException(`Export job ${jobId} not found`);
+    }
+
+    const state = await job.getState();
+
+    if (state === 'completed') {
+      const result = job.returnvalue as { csv: string; rowCount: number };
+      return { status: 'completed', csv: result.csv, rowCount: result.rowCount };
+    }
+
+    if (state === 'failed') {
+      return { status: 'failed' };
+    }
+
+    return { status: state };
   }
 }

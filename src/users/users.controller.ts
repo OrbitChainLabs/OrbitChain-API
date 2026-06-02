@@ -6,11 +6,15 @@ import {
   Body,
   UseGuards,
   Request,
+  Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateKYCStatusDto } from './dto/update-kyc-status.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
+import { GetUserDonationsQueryDto, GetUserDonationsResponseDto, ExportDonationHistoryQueryDto } from './dto/get-user-donations.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 
@@ -39,6 +43,89 @@ export class UsersController {
     @Body() updateDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     return this.usersService.updateMyProfile(req.user.walletAddress, updateDto);
+  }
+
+  /**
+   * GET /users/me/donations
+   * Retrieve authenticated user's donation history with filters and sorting
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/donations')
+  async getMyDonations(
+    @Request() req: any,
+    @Query() query: GetUserDonationsQueryDto,
+  ): Promise<GetUserDonationsResponseDto> {
+    const userId = req.user?.sub as string;
+    return this.usersService.getUserDonationHistory(
+      userId,
+      query.page,
+      query.limit,
+      query.sortBy,
+      query.order,
+      query.campaignId,
+      query.startDate,
+      query.endDate,
+    );
+  }
+
+  /**
+   * GET /users/me/donations/export
+   * Export user's donation history as CSV.
+   * Small exports (<= 500 rows) are returned inline.
+   * Large exports are queued via Bull; a jobId is returned for polling.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/donations/export')
+  async exportMyDonations(
+    @Request() req: any,
+    @Query() query: ExportDonationHistoryQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const userId = req.user?.sub as string;
+    const result = await this.usersService.exportUserDonationsAsCSV(
+      userId,
+      query.campaignId,
+      query.startDate,
+      query.endDate,
+    );
+
+    if (result.queued) {
+      // Large export — return 202 Accepted with jobId for polling
+      res.status(202).json({
+        message: 'Export queued. Poll the status endpoint for completion.',
+        jobId: result.jobId,
+        statusUrl: `/users/me/donations/export/${result.jobId}/status`,
+      });
+      return;
+    }
+
+    // Small export — return CSV inline
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
+    res.status(200).send(result.csv);
+  }
+
+  /**
+   * GET /users/me/donations/export/:jobId/status
+   * Poll the status of a queued export job.
+   * Returns the CSV when the job is complete.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/donations/export/:jobId/status')
+  async getExportJobStatus(
+    @Param('jobId') jobId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.usersService.getExportJobStatus(jobId);
+
+    if (result.status === 'completed' && result.csv) {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
+      res.status(200).send(result.csv);
+      return;
+    }
+
+    res.status(200).json({ status: result.status, rowCount: result.rowCount });
   }
 
   /**
