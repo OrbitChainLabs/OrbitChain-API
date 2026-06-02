@@ -9,11 +9,9 @@ import {
   Query,
   Body,
   Req,
-  BadRequestException,
   Inject,
   UseGuards,
 } from '@nestjs/common';
-import Keyv from 'keyv';
 import { AuthGuard } from '@nestjs/passport';
 import { CampaignsService } from './campaigns.service';
 import { CampaignStats } from './interfaces/campaign-stats.interface';
@@ -21,7 +19,6 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
-import { Body } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../users/guards/admin.guard';
@@ -42,6 +39,11 @@ const CACHE_MANAGER = 'CACHE_MANAGER';
 @Controller('campaigns')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class CampaignsController {
+  constructor(
+    private readonly campaignsService: CampaignsService,
+    private readonly donationsService: DonationsService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   @Get(':id/stats')
   @Roles('creator', 'admin')
@@ -49,11 +51,7 @@ export class CampaignsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CampaignStats> {
     return this.campaignsService.getCampaignStats(id);
-  constructor(
-    private readonly campaignsService: CampaignsService,
-    private readonly donationsService: DonationsService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -118,6 +116,18 @@ export class CampaignsController {
       query.sortBy,
       query.order,
     );
+  }
+
+  /**
+   * GET /campaigns/:id/updates
+   * Public endpoint – returns paginated campaign updates sorted by createdAt DESC
+   */
+  @Get(':id/updates')
+  async getCampaignUpdates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('page') page = 1,
+  ) {
+    return this.campaignsService.getCampaignUpdates(id, Number(page));
   }
 
   private generateCacheKey(query: BrowseCampaignsQueryDto): string {
