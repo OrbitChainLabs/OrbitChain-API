@@ -1,25 +1,22 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Campaign } from './entities/campaign.entity';
-import { Donation } from '../donations/entities/donation.entity';
-import { CampaignStats, DonationsPerDay, TopDonor } from './interfaces/campaign-stats.interface';
-import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StellarTransactionsService } from '../stellar/stellar-transactions.service';
 import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
 
 @Injectable()
 export class CampaignsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stellarTransactions: StellarTransactionsService,
+  ) {}
 
   async createCampaign(userId: string, dto: CreateCampaignDto) {
     const milestoneCreates = (dto.milestones || []).map((m) => ({
@@ -236,6 +233,49 @@ export class CampaignsService {
         data: { isFeatured: true },
       });
     });
+  }
+
+  async getContractBalance(campaignId: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found');
+    }
+
+    if (!campaign.contractId) {
+      throw new BadRequestException('Campaign has no contractId set');
+    }
+
+    const balances = await this.stellarTransactions.getContractBalances(campaign.contractId);
+
+    // Calculate total on-chain balance
+    let onChainTotal = 0;
+    for (const b of balances) {
+      onChainTotal += parseFloat(b.balance);
+    }
+
+    const storedRaisedAmount = parseFloat(campaign.raisedAmount.toString());
+    const discrepancyDetected = Math.abs(onChainTotal - storedRaisedAmount) > 0.0001;
+
+    // If discrepancy detected, update the stored raisedAmount
+    if (discrepancyDetected) {
+      await this.prisma.campaign.update({
+        where: { id: campaignId },
+        data: {
+          raisedAmount: onChainTotal,
+        },
+      });
+    }
+
+    return {
+      contractId: campaign.contractId,
+      balances,
+      storedRaisedAmount: campaign.raisedAmount.toString(),
+      onChainTotal: onChainTotal.toString(),
+      discrepancyDetected,
+    };
   }
 
   async recalculateCampaignStats(campaignId: string) {

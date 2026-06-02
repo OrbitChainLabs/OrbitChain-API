@@ -180,6 +180,49 @@ export class StellarTransactionsService {
     if (!opAsset) return false;
     return assetsEqual(asset, opAsset);
   }
+
+  /**
+   * Fetch on-chain asset balances for a Stellar account (contract or wallet).
+   * Queries Horizon for the account's native and issued asset balances.
+   */
+  async getContractBalances(
+    contractId: string,
+  ): Promise<{ assetCode: string; assetIssuer?: string; balance: string; isNative: boolean }[]> {
+    const res = await fetch(
+      `${this.horizonUrl}/accounts/${encodeURIComponent(contractId)}`,
+      { headers: { accept: 'application/json' } },
+    );
+
+    if (res.status === 404) {
+      return []; // account not yet funded — zero balance
+    }
+
+    if (!res.ok) {
+      throw new ServiceUnavailableException(
+        `Horizon error fetching account ${contractId} (${res.status})`,
+      );
+    }
+
+    const account = (await res.json()) as any;
+    const balances = account?.balances ?? [];
+
+    return balances.map((b: any) => {
+      const assetType = String(b.asset_type ?? '');
+      if (assetType === 'native') {
+        return {
+          assetCode: 'XLM',
+          balance: String(b.balance ?? '0'),
+          isNative: true,
+        };
+      }
+      return {
+        assetCode: String(b.asset_code ?? ''),
+        assetIssuer: String(b.asset_issuer ?? ''),
+        balance: String(b.balance ?? '0'),
+        isNative: false,
+      };
+    });
+  }
 }
 
 async function withRetries<T>(
