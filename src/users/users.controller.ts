@@ -14,6 +14,7 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateKYCStatusDto } from './dto/update-kyc-status.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
+import { NotificationPreferencesDto, UpdateNotificationPreferencesDto } from './dto/notification-preferences.dto';
 import { GetUserDonationsQueryDto, GetUserDonationsResponseDto, ExportDonationHistoryQueryDto } from './dto/get-user-donations.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
@@ -126,6 +127,34 @@ export class UsersController {
     }
 
     res.status(200).json({ status: result.status, rowCount: result.rowCount });
+  }
+
+  /**
+   * GET /users/me/notification-preferences
+   * Retrieve authenticated user's notification preferences
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('me/notification-preferences')
+  async getNotificationPreferences(
+    @Request() req: any,
+  ): Promise<NotificationPreferencesDto> {
+    return this.usersService.getNotificationPreferences(req.user.sub);
+  }
+
+  /**
+   * PATCH /users/me/notification-preferences
+   * Update authenticated user's notification preferences
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/notification-preferences')
+  async updateNotificationPreferences(
+    @Request() req: any,
+    @Body() updateDto: UpdateNotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    return this.usersService.updateNotificationPreferences(
+      req.user.sub,
+      updateDto,
+    );
   }
 
   /**
