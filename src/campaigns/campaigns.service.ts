@@ -54,7 +54,7 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException(`Campaign ${campaignId} not found`);
+      throw new NotFoundException('Campaign not found');
     }
 
     const updated = await this.prisma.campaign.update({
@@ -66,9 +66,6 @@ export class CampaignsService {
         imageUrl: dto.coverImageUrl ?? campaign.imageUrl,
       },
     });
-
-    return updated;
-  }
 
   /**
    * Browse public campaigns with pagination, filtering, and sorting
@@ -312,16 +309,14 @@ export class CampaignsService {
     const filters = sqlCampaignFilters({ category, status });
 
     const [countRow, rankedRows] = await this.prisma.$transaction([
-      this.prisma.$queryRaw<{ count: number }[]>`
-        SELECT COUNT(*)::int AS count
+      this.prisma.$queryRaw<{ count: number }[]>`        SELECT COUNT(*)::int AS count
         FROM campaigns c
         WHERE ${filters.whereSql}
           AND to_tsvector('english',
             coalesce(c.title, '') || ' ' || coalesce(c.description, '') || ' ' || coalesce(c.story, '')
           ) @@ plainto_tsquery('english', ${search})
       `,
-      this.prisma.$queryRaw<{ id: string; rank: number }[]>`
-        SELECT c.id,
+      this.prisma.$queryRaw<{ id: string; rank: number }[]>`        SELECT c.id,
           ts_rank(
             to_tsvector('english',
               coalesce(c.title, '') || ' ' || coalesce(c.description, '') || ' ' || coalesce(c.story, '')

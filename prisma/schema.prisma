@@ -304,14 +304,15 @@ model FundRelease {
 
 /// Update model representing campaign progress updates
 model Update {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   campaignId String
   creatorId  String
   title      String
   content    String
-  imageUrl   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  imageUrls  Json?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // Relations
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -320,6 +321,7 @@ model Update {
   @@index([campaignId])
   @@index([creatorId])
   @@index([createdAt])
+  @@index([deletedAt])
   @@map("updates")
 }
 

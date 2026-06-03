@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -28,6 +30,7 @@ import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/brows
 import { DonationsService } from '../donations/donations.service';
 import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
 import { GetCampaignDonationsQueryDto, GetCampaignDonationsResponseDto } from '../donations/dto/get-campaign-donations.dto';
+import { CreateUpdateDto } from './dto/create-update.dto';
 
 const FORBIDDEN_FIELDS = [
   'goalAmount',
@@ -134,6 +137,35 @@ export class CampaignsController {
   }
 
   /**
+   * POST /campaigns/:id/updates
+   * Create a campaign update. Creator-only.
+   */
+  @Post(':id/updates')
+  @UseGuards(JwtAuthGuard)
+  async createUpdate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateUpdateDto,
+    @Req() req: Request & { user: any },
+  ) {
+    const userId = req.user?.sub as string;
+    return this.campaignsService.createUpdate(id, userId, body);
+  }
+
+  /**
+   * DELETE /campaigns/:id/updates/:updateId
+   * Soft-delete a campaign update. Creator or admin.
+   */
+  @Delete(':id/updates/:updateId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  async deleteUpdate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('updateId', ParseUUIDPipe) updateId: string,
+    @Req() req: Request & { user: any },
+  ): Promise<void> {
+    const userId = req.user?.sub as string;
+    const isAdmin = req.user?.role === 'ADMIN';
+    await this.campaignsService.deleteUpdate(id, updateId, userId, isAdmin);
    * GET /campaigns/:id/updates
    * Public endpoint – returns paginated campaign updates sorted by createdAt DESC
    */
