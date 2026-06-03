@@ -178,12 +178,7 @@ export class CampaignsController {
   }
 
   private generateCacheKey(query: BrowseCampaignsQueryDto): string {
-    const parts = [
-      'campaigns',
-      `page:${query.page}`,
-      `limit:${query.limit}`,
-      `sortBy:${query.sortBy}`,
-    ];
+    const parts = ['campaigns'];
 
     if (query.category) parts.push(`category:${query.category}`);
     if (query.status) parts.push(`status:${query.status}`);

@@ -207,7 +207,7 @@ model Donation {
   campaignId  String
   tipAmount   Decimal?       @db.Decimal(20, 7)
   tipAsset    String?        @default("XLM")
-  tipId       String?
+  tipId       String?        @unique
   donatedAt   DateTime       @default(now())
   confirmedAt DateTime?
   createdAt   DateTime       @default(now())
@@ -257,9 +257,10 @@ model Milestone {
   title        String
   description  String?
   targetAmount Decimal         @db.Decimal(20, 7)
-  status       MilestoneStatus @default(PENDING)
+  status       MilestoneStatus @default(LOCKED)
   dueDate      DateTime?
   completedAt  DateTime?
+  txHash       String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 

@@ -35,6 +35,7 @@ import { MilestonesModule } from './milestones/milestones.module';
     AppThrottlerModule,
     ApiKeysModule,
     CampaignsModule,
+    ContractsModule,
     DonationsModule,
     StellarModule,
     ContractsModule,
