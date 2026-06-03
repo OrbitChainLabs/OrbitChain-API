@@ -182,6 +182,7 @@ model Campaign {
   milestones   Milestone[]
   updates      Update[]
   disputes     Dispute[]
+  contract   SmartContract?
   fundReleases FundRelease[]
 
   @@index([creatorId])
@@ -409,4 +410,22 @@ model AuditLog {
   @@index([resourceType])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// SmartContract model representing deployed Soroban contracts
+model SmartContract {
+  id              String   @id @default(uuid())
+  contractId      String   @unique
+  campaignId      String   @unique
+  network         String
+  deployedAt      DateTime @default(now())
+  deployerAddress String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("contracts")
 }

@@ -13,6 +13,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { CampaignsService } from './campaigns.service';
 import { CampaignStats } from './interfaces/campaign-stats.interface';
 import { Roles } from '../common/decorators/roles.decorator';
