@@ -120,16 +120,17 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  campaigns     Campaign[]     @relation("CampaignCreator")
-  donations     Donation[]
-  updates       Update[]       @relation("UpdateCreator")
-  notifications Notification[]
-  disputes      Dispute[]      @relation("DisputeFiler")
-  tips          PlatformTip[]
-  newsLetterSub Newsletter?
-  auditLogs     AuditLog[]
-  apiKeys       ApiKey[]
-  fundReleases  FundRelease[]
+  campaigns              Campaign[]              @relation("CampaignCreator")
+  donations              Donation[]
+  updates                Update[]                @relation("UpdateCreator")
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  disputes               Dispute[]               @relation("DisputeFiler")
+  tips                   PlatformTip[]
+  newsLetterSub          Newsletter?
+  auditLogs              AuditLog[]
+  apiKeys                ApiKey[]
+  fundReleases           FundRelease[]
 
   @@index([email])
   @@index([role])
@@ -202,7 +203,6 @@ model Donation {
   txHash      String         @unique
   isAnonymous Boolean        @default(false)
   status      DonationStatus @default(PENDING)
-  isAnonymous Boolean        @default(false)
   donorId     String
   campaignId  String
   tipAmount   Decimal?       @db.Decimal(20, 7)
@@ -217,7 +217,7 @@ model Donation {
   donor    User         @relation(fields: [donorId], references: [id], onDelete: Cascade)
   campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   disputes Dispute[]
-  tip      PlatformTip? @relation(fields: [tipId], references: [id])
+  tip      PlatformTip? @relation("DonationTip")
 
   @@index([donorId])
   @@index([campaignId])
@@ -241,7 +241,7 @@ model PlatformTip {
 
   // Relations
   donor    User      @relation(fields: [donorId], references: [id], onDelete: Cascade)
-  donation Donation? @relation(fields: [donationId], references: [id], onDelete: SetNull)
+  donation Donation? @relation("DonationTip", fields: [donationId], references: [id], onDelete: SetNull)
 
   @@index([donorId])
   @@index([status])
@@ -388,6 +388,21 @@ model Newsletter {
   @@index([email])
   @@index([isSubscribed])
   @@map("newsletters")
+}
+
+/// NotificationPreference model storing per-user notification channel toggles
+model NotificationPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  /// JSON object structured as { donationReceived: { email: bool, inApp: bool }, milestoneUnlocked: { email: bool, inApp: bool }, ... }
+  preferences Json   @default("{\"donationReceived\":{\"email\":true,\"inApp\":true},\"milestoneUnlocked\":{\"email\":true,\"inApp\":true},\"campaignUpdate\":{\"email\":true,\"inApp\":true},\"campaignCreated\":{\"email\":true,\"inApp\":true},\"campaignCompleted\":{\"email\":true,\"inApp\":true}}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 /// AuditLog model for tracking system actions

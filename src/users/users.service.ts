@@ -8,6 +8,10 @@ import type { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
+import {
+  NotificationPreferencesDto,
+  UpdateNotificationPreferencesDto,
+} from './dto/notification-preferences.dto';
 import { QUEUE_EXPORT } from '../queue/queue.constants';
 import type { ExportDonationJobData } from './export.processor';
 
@@ -420,6 +424,83 @@ export class UsersService {
     }
 
     return { csv: rows.join('\n'), queued: false };
+  }
+
+  /**
+   * Get notification preferences for the current user.
+   * Creates default preferences if none exist.
+   */
+  async getNotificationPreferences(userId: string): Promise<NotificationPreferencesDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { notificationPreference: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Return default preferences if none exist
+    if (!user.notificationPreference) {
+      return {
+        donationReceived: { email: true, inApp: true },
+        milestoneUnlocked: { email: true, inApp: true },
+        campaignUpdate: { email: true, inApp: true },
+        campaignCreated: { email: true, inApp: true },
+        campaignCompleted: { email: true, inApp: true },
+      };
+    }
+
+    return user.notificationPreference.preferences as unknown as NotificationPreferencesDto;
+  }
+
+  /**
+   * Update notification preferences for the current user.
+   * Creates a preference record if none exists, otherwise merges the update.
+   */
+  async updateNotificationPreferences(
+    userId: string,
+    updateDto: UpdateNotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { notificationPreference: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingPrefs = user.notificationPreference?.preferences as Record<
+      string,
+      { email?: boolean; inApp?: boolean }
+    > | null;
+
+    // Merge existing preferences with the update
+    const defaults = {
+      donationReceived: { email: true, inApp: true },
+      milestoneUnlocked: { email: true, inApp: true },
+      campaignUpdate: { email: true, inApp: true },
+      campaignCreated: { email: true, inApp: true },
+      campaignCompleted: { email: true, inApp: true },
+    };
+
+    const merged = { ...defaults, ...(existingPrefs as object) };
+
+    for (const [key, value] of Object.entries(updateDto)) {
+      if (value !== undefined) {
+        merged[key] = { ...merged[key], ...value };
+      }
+    }
+
+    // Upsert the preference record
+    const prefs = await this.prisma.notificationPreference.upsert({
+      where: { userId },
+      update: { preferences: merged },
+      create: { userId, preferences: merged },
+    });
+
+    return prefs.preferences as unknown as NotificationPreferencesDto;
   }
 
   /**

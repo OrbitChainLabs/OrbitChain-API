@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../users/guards/admin.guard';
 import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
 import { DonationsService } from '../donations/donations.service';
+import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
 import { GetCampaignDonationsQueryDto, GetCampaignDonationsResponseDto } from '../donations/dto/get-campaign-donations.dto';
 
 const FORBIDDEN_FIELDS = [
@@ -100,6 +101,18 @@ export class CampaignsController {
     await this.cacheManager.set(cacheKey, result, 30000);
 
     return result;
+  }
+
+  /**
+   * GET /campaigns/:id/contract-balance
+   * Fetch on-chain balances for the campaign's Stellar contract account.
+   * Discrepancies between on-chain and stored amounts are flagged and auto-corrected.
+   */
+  @Get(':id/contract-balance')
+  async getContractBalance(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ContractBalanceResponseDto> {
+    return this.campaignsService.getContractBalance(id);
   }
 
   /**
