@@ -1,0 +1,216 @@
+import { Injectable, Inject, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Horizon, xdr, scValToNative, StrKey } from '@stellar/stellar-sdk';
+import { PrismaService } from '../prisma/prisma.service';
+import { QUEUE_CONTRACT_EVENTS } from '../queue/queue.constants';
+
+@Injectable()
+export class StellarEventService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(StellarEventService.name);
+  private readonly horizonUrl: string;
+  private readonly horizonServer: Horizon.Server;
+  private streamCloseFn?: () => void;
+  private lastCursor = 'now';
+  private isConnecting = false;
+  private active = true;
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_CONTRACT_EVENTS) private readonly contractEventsQueue: Queue,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {
+    this.horizonUrl = this.config.get<string>('STELLAR_HORIZON_URL') || 'https://horizon-testnet.stellar.org';
+    this.horizonServer = new Horizon.Server(this.horizonUrl);
+  }
+
+  async onApplicationBootstrap() {
+    this.logger.log('Starting Stellar Event Listener Service...');
+    
+    // Load last cursor from cache
+    const savedCursor = await this.cacheManager.get<string>('stellar:event_listener:cursor');
+    if (savedCursor) {
+      this.lastCursor = savedCursor;
+      this.logger.log(`Loaded last processed transaction cursor: ${this.lastCursor}`);
+    } else {
+      this.logger.log('No saved cursor found. Starting from "now"');
+    }
+
+    // Catch up on any missed events and start the stream
+    await this.catchUpAndStartStream();
+  }
+
+  onModuleDestroy() {
+    this.active = false;
+    if (this.streamCloseFn) {
+      try {
+        this.streamCloseFn();
+        this.logger.log('Horizon SSE stream closed.');
+      } catch (err) {
+        this.logger.error('Error closing Horizon stream:', err.message);
+      }
+    }
+  }
+
+  private async catchUpAndStartStream() {
+    if (this.isConnecting) return;
+    this.isConnecting = true;
+
+    try {
+      let currentCursor = this.lastCursor;
+
+      if (currentCursor !== 'now') {
+        this.logger.log(`Fetching missed events since cursor: ${currentCursor}`);
+        let hasMore = true;
+        let catchUpCount = 0;
+
+        while (hasMore && this.active) {
+          const page = await this.horizonServer
+            .transactions()
+            .cursor(currentCursor)
+            .limit(100)
+            .order('asc')
+            .call();
+
+          if (page.records && page.records.length > 0) {
+            for (const tx of page.records) {
+              await this.handleTransaction(tx);
+              currentCursor = tx.paging_token;
+              catchUpCount++;
+            }
+            await this.saveCursor(currentCursor);
+          } else {
+            hasMore = false;
+          }
+        }
+        this.logger.log(`Catch up complete. Processed ${catchUpCount} transactions.`);
+      }
+
+      if (this.active) {
+        this.startStream(currentCursor);
+      }
+    } catch (err) {
+      this.logger.error(`Error during catch-up: ${err.message}. Retrying in 5 seconds...`);
+      setTimeout(() => this.catchUpAndStartStream(), 5000);
+    } finally {
+      this.isConnecting = false;
+    }
+  }
+
+  private startStream(cursor: string) {
+    this.logger.log(`Starting real-time Horizon transaction stream from cursor: ${cursor}`);
+    this.streamCloseFn = this.horizonServer
+      .transactions()
+      .cursor(cursor)
+      .stream({
+        onmessage: async (tx) => {
+          await this.handleTransaction(tx);
+        },
+        onerror: (error) => {
+          this.logger.error('Horizon stream error:', error);
+          this.reconnect();
+        },
+      });
+  }
+
+  private reconnect() {
+    if (!this.active) return;
+    this.logger.log('Attempting to reconnect Horizon stream in 5 seconds...');
+    
+    if (this.streamCloseFn) {
+      try {
+        this.streamCloseFn();
+      } catch (e) {}
+    }
+
+    setTimeout(() => this.catchUpAndStartStream(), 5000);
+  }
+
+  private async handleTransaction(tx: any) {
+    const resultMetaXdr = tx.result_meta_xdr;
+    if (!resultMetaXdr) {
+      await this.saveCursor(tx.paging_token);
+      return;
+    }
+
+    const events = this.parseEvents(resultMetaXdr);
+    if (events.length === 0) {
+      await this.saveCursor(tx.paging_token);
+      return;
+    }
+
+    try {
+      const activeContracts = await this.prisma.smartContract.findMany({
+        select: { contractId: true },
+      });
+      const contractIds = activeContracts.map((c) => c.contractId);
+
+      if (contractIds.length === 0) {
+        await this.saveCursor(tx.paging_token);
+        return;
+      }
+
+      for (const event of events) {
+        if (event.contractId && contractIds.includes(event.contractId)) {
+          const eventType = event.topics[0];
+          if (eventType === 'DonationReceived' || eventType === 'MilestoneReleased') {
+            this.logger.log(
+              `Found contract event [${eventType}] from contract ID ${event.contractId} in tx ${tx.hash}`,
+            );
+
+            await this.contractEventsQueue.add('process-event', {
+              contractId: event.contractId,
+              eventType,
+              topics: event.topics,
+              value: event.value,
+              ledger: tx.ledger_attr || tx.ledger,
+              txHash: tx.hash,
+              pagingToken: tx.paging_token,
+              createdAt: tx.created_at || new Date().toISOString(),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.error(`Error processing transaction events in tx ${tx.hash}:`, err.message);
+    }
+
+    await this.saveCursor(tx.paging_token);
+  }
+
+  private async saveCursor(cursor: string) {
+    this.lastCursor = cursor;
+    await this.cacheManager.set('stellar:event_listener:cursor', cursor);
+  }
+
+  private parseEvents(resultMetaXdr: string): any[] {
+    try {
+      const meta = xdr.TransactionMeta.fromXDR(resultMetaXdr, 'base64');
+      if (meta.switch().name === 'v3' || meta.switch().value === 3) {
+        const sorobanMeta = meta.v3().sorobanMeta();
+        if (sorobanMeta) {
+          const contractEvents = sorobanMeta.events() || [];
+          return contractEvents.map((event) => {
+            const rawContractId = event.contractId();
+            const contractId = rawContractId ? StrKey.encodeContract(rawContractId) : null;
+            const topics = (event.topics() || []).map((t) => scValToNative(t));
+            const value = event.value() ? scValToNative(event.value()) : null;
+
+            return {
+              contractId,
+              topics,
+              value,
+            };
+          });
+        }
+      }
+    } catch (err) {
+      this.logger.error('Failed to parse result_meta_xdr for events:', err.message);
+    }
+    return [];
+  }
+}
