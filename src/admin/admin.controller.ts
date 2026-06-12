@@ -24,6 +24,10 @@ export class AdminController {
   async suspendCampaign(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SuspendCampaignDto,
+    @Request() req: any,
+  ): Promise<{ message: string }> {
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SuspendCampaignDto,
     @Request() req,
   ): Promise<{ message: string }> {
     return this.adminService.suspendCampaign(id, dto, req.user.sub, req.user.email);
