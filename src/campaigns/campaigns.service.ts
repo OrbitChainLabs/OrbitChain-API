@@ -139,6 +139,7 @@ export class CampaignsService {
     return { data: campaigns, total, page, limit };
   }
 
+  /** Returns up to 6 featured, non-DRAFT campaigns sorted by recent activity */
   async getFeaturedCampaigns() {
     return this.prisma.campaign.findMany({
       where: {
@@ -151,6 +152,7 @@ export class CampaignsService {
     });
   }
 
+  /** Feature a campaign (max 6 featured). Enforces the limit in a transaction. */
   async featureCampaign(campaignId: string) {
     return this.prisma.$transaction(async (tx) => {
       const campaign = await tx.campaign.findUnique({
@@ -221,6 +223,7 @@ export class CampaignsService {
     };
   }
 
+  /** Recalculate a campaign's raisedAmount from confirmed donations */
   async recalculateCampaignStats(campaignId: string) {
     const agg = await this.prisma.donation.aggregate({
       where: {
@@ -280,6 +283,7 @@ export class CampaignsService {
     return { data, total, page, limit };
   }
 
+  /** Compute aggregate stats for a campaign: total raised, donor count, etc. */
   async getCampaignStats(campaignId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
