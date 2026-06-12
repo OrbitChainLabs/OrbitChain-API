@@ -1,5 +1,6 @@
 import { IsString, IsOptional, MaxLength } from 'class-validator';
 
+/** DTO for updating an authenticated user's profile fields */
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
