@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerRedisStorage } from './throttler-redis.storage';
 
+/** Provides rate limiting via @nestjs/throttler with Redis-backed storage */
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({

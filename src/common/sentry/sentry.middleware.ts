@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 import * as Sentry from '@sentry/node';
 
+/** Express middleware that initializes Sentry request context for error tracking */
 @Injectable()
 export class SentryMiddleware implements NestMiddleware {
   constructor(private readonly config: ConfigService) {}
