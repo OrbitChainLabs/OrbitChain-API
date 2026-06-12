@@ -1,8 +1,7 @@
+import { Controller } from '@nestjs/common';
+import { PlatformService } from './platform.service';
 
-
-@Controller()
+@Controller('platform')
 export class PlatformController {
-    constructor() {
-
-    }
+  constructor(private readonly platformService: PlatformService) {}
 }
