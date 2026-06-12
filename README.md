@@ -1,98 +1,218 @@
+# OrbitChain API
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <strong>Decentralized Fundraising & Campaign Management API</strong><br/>
+  <em>Built on NestJS · Powered by Stellar · Backed by PostgreSQL</em>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  <a href="https://nestjs.com/" target="_blank"><img src="https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" /></a>
+  <a href="https://stellar.org/" target="_blank"><img src="https://img.shields.io/badge/Stellar-7D00FF?style=for-the-badge&logo=stellar&logoColor=white" alt="Stellar" /></a>
+  <a href="https://www.postgresql.org/" target="_blank"><img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Overview
 
-## Project setup
+**OrbitChain** is a decentralized fundraising platform API that enables transparent, blockchain-verified campaign creation, donation processing, and milestone-based fund releases on the Stellar network. Designed for NGOs, community organizers, and individual fundraisers who demand trustless accountability.
+
+### Key Capabilities
+
+- 🔐 **Stellar Wallet Authentication** — Sign-in with Stellar key-based challenge-response
+- 📋 **Campaign Lifecycle Management** — Draft → Approval → Active → Completion
+- 💰 **Blockchain-Verified Donations** — On-chain transaction tracking and confirmation
+- 🎯 **Milestone-Based Fund Releases** — Smart contract-governed milestone unlocking
+- 🔔 **Real-Time Notifications** — WebSocket + email notifications for all campaign events
+- 📊 **Analytics & Export** — Campaign stats, donation history, CSV exports
+- 🛡️ **Admin Dashboard** — User management, KYC verification, dispute resolution
+- 📝 **Audit Trail** — Immutable audit logs for compliance and transparency
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Runtime** | Node.js + TypeScript |
+| **Framework** | NestJS (Express adapter) |
+| **Database** | PostgreSQL + Prisma ORM |
+| **Cache / Queue** | Redis + Bull |
+| **Blockchain** | Stellar SDK + Soroban Smart Contracts |
+| **Real-Time** | Socket.IO WebSockets |
+| **Monitoring** | Sentry error tracking |
+| **Email** | Nodemailer (SMTP) |
+| **API Docs** | Swagger / OpenAPI |
+
+---
+
+## Project Setup
+
+### Prerequisites
+
+- Node.js >= 18
+- PostgreSQL >= 14
+- Redis >= 6
+- npm or yarn
+
+### Installation
 
 ```bash
-$ npm install
+# Clone the repository
+git clone <repository-url>
+cd orbitchain-api
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your database, Redis, and Stellar configuration
 ```
 
-## Compile and run the project
+### Configuration
+
+Update the `.env` file with your credentials:
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/orbitchain?schema=public"
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# JWT
+JWT_SECRET=your-secure-secret-here
+
+# Email (optional — console fallback in development)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-user
+SMTP_PASS=your-password
+EMAIL_FROM=noreply@orbitchain.io
+```
+
+### Database Migrations
 
 ```bash
-# development
-$ npm run start
+# Generate Prisma client
+npx prisma generate
 
-# watch mode
-$ npm run start:dev
+# Run migrations
+npx prisma migrate dev --name init
 
-# production mode
-$ npm run start:prod
+# (Optional) Open Prisma Studio
+npx prisma studio
 ```
 
-## Run tests
+---
+
+## Running the Application
 
 ```bash
-# unit tests
-$ npm run test
+# Development (hot reload)
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
+# Production
+npm run build
+npm run start:prod
 
-# test coverage
-$ npm run test:cov
+# Debug mode
+npm run start:debug
 ```
+
+The API will be available at `http://localhost:3000` and Swagger docs at `http://localhost:3000/api/docs`.
+
+---
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+---
+
+## API Modules
+
+| Module | Description | Endpoints |
+|--------|-------------|-----------|
+| **Auth** | Stellar wallet challenge-response auth | `/auth/*` |
+| **Users** | Profile, KYC, notification preferences | `/users/*` |
+| **Campaigns** | CRUD, stats, fund release requests | `/campaigns/*` |
+| **Donations** | Donation creation, history, admin tips | `/donations/*` |
+| **Milestones** | Campaign milestone tracking | `/milestones/*` |
+| **Contracts** | Soroban smart contract management | `/contracts/*` |
+| **Notifications** | WebSocket gateway + REST endpoints | `/notifications/*` |
+| **Admin** | User moderation, campaign suspension | `/admin/*` |
+| **Health** | Health checks (DB, Redis) | `/health` |
+| **API Keys** | Programmatic API key management | `/api-keys/*` |
+
+---
+
+## Project Structure
+
+```
+src/
+├── admin/              # Admin dashboard & moderation
+├── api-keys/           # API key management
+├── audit/              # Audit log entities
+├── auth/               # Stellar wallet authentication
+├── campaigns/          # Campaign CRUD & lifecycle
+├── common/             # Shared guards, decorators, middleware
+├── contracts/          # Soroban smart contract services
+├── donations/          # Donation processing & admin tips
+├── health/             # Health check endpoints
+├── milestones/         # Milestone tracking & fund release
+├── notifications/      # Email, WebSocket, notification prefs
+├── platform/           # Platform tip processing
+├── prisma/             # Prisma ORM service & module
+├── queue/              # Bull queue configuration
+├── redis/              # Redis module
+├── stellar/            # Stellar SDK, Soroban, event services
+├── throttler/          # Rate limiting
+├── users/              # User profiles, KYC, exports
+├── app.controller.ts   # Root controller
+├── app.module.ts       # Root module
+├── app.service.ts      # Root service
+└── main.ts             # Application bootstrap & Swagger
+```
+
+---
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+For production deployment:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Build the application
+npm run build
+
+# Run with Node.js
+node dist/main
+
+# Or use a process manager
+pm2 start dist/main.js --name orbitchain-api
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
 ## Resources
 
-Check out a few resources that may come in handy when working with NestJS:
+- [NestJS Documentation](https://docs.nestjs.com)
+- [Stellar Developer Docs](https://developers.stellar.org/)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED — Proprietary. All rights reserved.
