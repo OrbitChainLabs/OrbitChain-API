@@ -7,6 +7,10 @@ interface ChallengeResponse {
   challenge: string;
 }
 
+/**
+ * Issues Stellar wallet challenge strings for authentication.
+ * Clients sign the challenge with their private key to prove wallet ownership.
+ */
 @ApiTags('auth')
 @Controller('auth')
 @Throttle({ default: { limit: 10, ttl: 60_000 } })
