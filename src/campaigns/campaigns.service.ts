@@ -18,6 +18,10 @@ export class CampaignsService {
     private readonly stellarTransactions: StellarTransactionsService,
   ) {}
 
+  /**
+   * Create a new campaign with optional milestones and accepted assets.
+   * Sets status to ACTIVE immediately upon creation.
+   */
   async createCampaign(userId: string, dto: CreateCampaignDto) {
     const milestoneCreates = (dto.milestones || []).map((m) => ({
       title: m.title,
