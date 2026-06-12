@@ -8,11 +8,13 @@ import { CreateContractDto } from './dto/create-contract.dto';
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
+  /** POST /contracts — Register a new smart contract for a campaign */
   @Post()
   async create(@Body() dto: CreateContractDto) {
     return this.contractsService.createContract(dto);
   }
 
+  /** GET /contracts/:contractId — Retrieve contract details with campaign info */
   @Get(':contractId')
   async getDetails(@Param('contractId') contractId: string) {
     return this.contractsService.getContractDetails(contractId);
