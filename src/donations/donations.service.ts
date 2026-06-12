@@ -112,6 +112,112 @@ export class DonationsService {
     };
   }
 
+  /** Get all donations for a user ordered by most recent first */
+  async findAll(userId: string) {
+    return this.prisma.donation.findMany({
+      where: { donorId: userId },
+      include: { tip: true },
+      orderBy: { donatedAt: 'desc' },
+    });
+  }
+
+  /** Get a single donation by ID, scoped to the requesting user */
+  async findById(id: string, userId: string) {
+    const donation = await this.prisma.donation.findFirst({
+      where: { id, donorId: userId },
+      include: { tip: true },
+    });
+
+    if (!donation) {
+      throw new NotFoundException('Donation not found');
+    }
+
+    return donation;
+  }
+
+  /** Verify a donation transaction on the Stellar network and update its status */
+  async verifyDonationOnChain(txHash: string): Promise<boolean> {
+    try {
+      const donation = await this.prisma.donation.findUnique({
+        where: { txHash },
+      });
+
+      if (!donation) return false;
+
+      const { SorobanRpc } = await import('@stellar/stellar-sdk');
+      const server = new SorobanRpc.Server('https://soroban-rpc.stellar.org');
+      const response = await server.getTransaction(txHash);
+
+      if (response.status === 'SUCCESS') {
+        await this.prisma.donation.update({
+          where: { txHash },
+          data: { status: 'CONFIRMED', confirmedAt: new Date() },
+        });
+
+        const updated = await this.prisma.donation.findUnique({
+          where: { txHash },
+          include: { tip: true },
+        });
+
+        if (updated?.tip && updated.tip.status === 'PENDING') {
+          await this.prisma.platformTip.update({
+            where: { id: updated.tip.id },
+            data: { status: 'CONFIRMED', confirmedAt: new Date() },
+          });
+        }
+
+        return true;
+      }
+
+      await this.prisma.donation.update({
+        where: { txHash },
+        data: { status: 'FAILED' },
+      });
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Verify a platform tip transaction on-chain */
+  async verifyTipOnChain(txHash: string): Promise<boolean> {
+    try {
+      const tip = await this.prisma.platformTip.findUnique({
+        where: { txHash },
+      });
+
+      if (!tip) return false;
+
+      const { SorobanRpc } = await import('@stellar/stellar-sdk');
+      const server = new SorobanRpc.Server('https://soroban-rpc.stellar.org');
+      const response = await server.getTransaction(txHash);
+
+      if (response.status === 'SUCCESS') {
+        await this.prisma.platformTip.update({
+          where: { txHash },
+          data: { status: 'CONFIRMED', confirmedAt: new Date() },
+        });
+
+        if (tip.donationId) {
+          await this.prisma.donation.update({
+            where: { id: tip.donationId },
+            data: { status: 'CONFIRMED', confirmedAt: new Date() },
+          });
+        }
+
+        return true;
+      }
+
+      await this.prisma.platformTip.update({
+        where: { txHash },
+        data: { status: 'FAILED' },
+      });
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   /** Get or create a user record by Stellar wallet address */
   private async getOrCreateUserByWallet(walletAddress: string) {
     const existing = await this.prisma.user.findUnique({
