@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsOptional, IsNumber, Min, Max, IsString, IsIn } from 'class-validator';
 
+/** Query DTO for browsing campaigns with pagination, filtering, and sorting */
 export class BrowseCampaignsQueryDto {
   @IsOptional()
   @Type(() => Number)
