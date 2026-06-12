@@ -1,8 +1,3 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateDonationDto } from './dto/create-donation.dto';
-import { DonationsService } from './donations.service.js';
 import {
   Controller,
   Post,
@@ -10,9 +5,10 @@ import {
   Body,
   Param,
   UseGuards,
+  Req,
   Request,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DonationsService } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { DonationResponseDto, PlatformTipResponseDto } from './dto/donation.dto';
@@ -25,19 +21,11 @@ export class DonationsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(
-    @Body() dto: CreateDonationDto,
     @Req() req: Request & { user: any },
+    @Body() dto: CreateDonationDto,
   ) {
     const walletAddress = String(req.user?.walletAddress ?? '');
     return this.donationsService.createDonation(walletAddress, dto);
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  async createDonation(
-    @Request() req: ExpressRequest & { user: any },
-    @Body() dto: CreateDonationDto,
-  ): Promise<{ donation: DonationResponseDto; tip: PlatformTipResponseDto | null }> {
-    const userId = req.user?.sub as string;
-    return this.donationsService.createDonation(userId, dto);
   }
 
   @UseGuards(JwtAuthGuard)
