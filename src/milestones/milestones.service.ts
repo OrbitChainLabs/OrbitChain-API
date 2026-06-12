@@ -103,7 +103,8 @@ export class MilestonesService {
   }
 
   /**
-   * Get fund release by ID
+   * Retrieve a single fund release record by ID.
+   * Optionally verifies that the requesting user is the creator.
    */
   async getFundReleaseById(releaseId: string, userId?: string): Promise<FundReleaseDetailDto> {
     const fundRelease = await this.prisma.fundRelease.findUnique({
@@ -144,7 +145,7 @@ export class MilestonesService {
   }
 
   /**
-   * Get all fund releases for a campaign
+   * List all fund releases for a campaign, optionally filtered by creator.
    */
   async getCampaignFundReleases(campaignId: string, creatorId?: string) {
     const where: Prisma.FundReleaseWhereInput = {
@@ -188,7 +189,7 @@ export class MilestonesService {
   }
 
   /**
-   * Get fund release statistics for a campaign
+   * Aggregate fund release stats grouped by status for a campaign.
    */
   async getCampaignFundReleaseStats(campaignId: string) {
     const stats = await this.prisma.fundRelease.groupBy({
@@ -222,7 +223,7 @@ export class MilestonesService {
   }
 
   /**
-   * Cancel a pending fund release (creator or admin only)
+   * Cancel a PENDING fund release. Only the original creator may cancel.
    */
   async cancelFundRelease(releaseId: string, userId: string): Promise<FundReleaseResponseDto> {
     const fundRelease = await this.prisma.fundRelease.findUnique({
