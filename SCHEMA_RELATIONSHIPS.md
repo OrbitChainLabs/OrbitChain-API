@@ -1,4 +1,4 @@
-# Database Schema Relationships Overview
+# OrbitChain Database Schema Relationships Overview
 
 ## Entity Relationship Diagram (Text Format)
 
