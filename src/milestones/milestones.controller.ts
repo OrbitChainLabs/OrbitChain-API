@@ -18,7 +18,7 @@ export class MilestonesController {
 
   /**
    * POST /campaigns/:campaignId/milestones/:milestoneId/release
-   * Request fund release for an unlocked milestone (issue #272 canonical path)
+   * Request fund release for an unlocked milestone (canonical path).
    */
   @UseGuards(JwtAuthGuard)
   @Post(':milestoneId/release')
@@ -39,7 +39,7 @@ export class MilestonesController {
 
   /**
    * POST /campaigns/:campaignId/milestones/:milestoneId/fund-releases
-   * Request fund release for an unlocked milestone (legacy path, kept for compat)
+   * Request fund release for an unlocked milestone (legacy compat path).
    */
   @UseGuards(JwtAuthGuard)
   @Post(':milestoneId/fund-releases')
@@ -58,10 +58,7 @@ export class MilestonesController {
     );
   }
 
-  /**
-   * GET /campaigns/:campaignId/milestones/:milestoneId/fund-releases/:releaseId
-   * Get fund release details
-   */
+  /** GET fund release details by release ID */
   @Get(':milestoneId/fund-releases/:releaseId')
   async getFundRelease(
     @Param('campaignId') campaignId: string,
@@ -73,10 +70,7 @@ export class MilestonesController {
     return this.milestonesService.getFundReleaseById(releaseId, userId);
   }
 
-  /**
-   * GET /campaigns/:campaignId/milestones/fund-releases
-   * Get all fund releases for a campaign
-   */
+  /** List all fund releases for a campaign, optionally scoped to creator */
   @Get('fund-releases')
   async getCampaignFundReleases(
     @Param('campaignId') campaignId: string,
@@ -86,19 +80,13 @@ export class MilestonesController {
     return this.milestonesService.getCampaignFundReleases(campaignId, creatorId);
   }
 
-  /**
-   * GET /campaigns/:campaignId/milestones/fund-releases/stats
-   * Get fund release statistics for a campaign
-   */
+  /** Aggregate fund release stats grouped by status for a campaign */
   @Get('fund-releases/stats')
   async getFundReleaseStats(@Param('campaignId') campaignId: string) {
     return this.milestonesService.getCampaignFundReleaseStats(campaignId);
   }
 
-  /**
-   * DELETE /campaigns/:campaignId/milestones/:milestoneId/fund-releases/:releaseId
-   * Cancel a pending fund release
-   */
+  /** Cancel a pending fund release (creator only) */
   @UseGuards(JwtAuthGuard)
   @Delete(':milestoneId/fund-releases/:releaseId')
   async cancelFundRelease(
