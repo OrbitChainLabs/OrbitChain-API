@@ -27,7 +27,7 @@ export class ApiKeysController {
 
   /** POST /api-keys — Generate a new API key (returns raw key only once) */
   @Post()
-  async create(@Req() req: Request & { user: JwtUser }) {
+  async create(@Req() req: Request & { user: JwtUser }): Promise<{ id: string; key: string; prefix: string; scope: string; createdAt: Date }> {
     const rawKey = `sk_${randomBytes(32).toString('hex')}`;
     const prefix = rawKey.slice(0, 12);
     const keyHash = createHash('sha256').update(rawKey).digest('hex');
@@ -56,6 +56,9 @@ export class ApiKeysController {
   @Delete(':id')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async revoke(
+    @Param('id') id: string,
+    @Req() req: Request & { user: JwtUser },
+  ): Promise<{ message: string }> {
     @Param('id') id: string,
     @Req() req: Request & { user: JwtUser },
   ) {
