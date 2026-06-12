@@ -102,7 +102,7 @@ export class DonationsService {
     return this.db.user.create({
       data: {
         walletAddress,
-        email: `${walletAddress}@stellaraid.local`,
+        email: `${walletAddress}@orbitchain.local`,
         role: 'DONOR',
       },
     });
