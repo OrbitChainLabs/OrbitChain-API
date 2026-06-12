@@ -21,6 +21,7 @@ export class NotificationsController {
    * GET /notifications — Returns the last 50 notifications.
    * Optionally filter by ?isRead=true|false
    */
+  /** GET /notifications — Returns up to 50 notifications, optionally filtered by read status */
   @Get()
   async getNotifications(
     @Req() req: Request & { user: any },
