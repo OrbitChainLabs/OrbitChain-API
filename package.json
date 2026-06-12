@@ -1,8 +1,8 @@
 {
   "name": "orbitchain-api",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Decentralized fundraising and campaign management API on Stellar",
+  "author": "OrbitChain Team",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
