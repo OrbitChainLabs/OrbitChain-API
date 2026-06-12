@@ -10,6 +10,7 @@ export interface TopDonor {
   donationCount: number;
 }
 
+/** Aggregate campaign statistics returned by the stats endpoint */
 export interface CampaignStats {
   campaignId: string;
   totalRaised: number;
