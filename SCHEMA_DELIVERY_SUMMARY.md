@@ -1,7 +1,7 @@
-# StellarAid Database Schema - Delivery Summary
+# OrbitChain Database Schema - Delivery Summary
 
 ## Overview
-Complete database schema implementation for StellarAid fundraising platform with all 9 required models, 7 enums, relationships, constraints, and comprehensive documentation.
+Complete database schema implementation for OrbitChain fundraising platform with all 9 required models, 7 enums, relationships, constraints, and comprehensive documentation.
 
 **Status**: ✅ Ready for Review and First Migration
 
@@ -209,7 +209,7 @@ If migrating from old schema:
 
 ### First Migration (After Approval)
 ```bash
-cd /workspaces/stellarAid-api
+cd /workspaces/orbitchain-api
 npx prisma migrate dev --name init
 ```
 
