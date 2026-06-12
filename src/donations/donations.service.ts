@@ -218,6 +218,205 @@ export class DonationsService {
     }
   }
 
+  /** Get platform tip revenue aggregated from confirmed tips */
+  async getTipRevenue() {
+    const result = await this.prisma.platformTip.aggregate({
+      where: { status: 'CONFIRMED' },
+      _sum: { amount: true },
+      _count: true,
+    });
+
+    return {
+      totalTips: result._count,
+      totalRevenue: result._sum.amount?.toString() || '0',
+      currency: 'XLM',
+    };
+  }
+
+  /** List all platform tips with donor info, ordered by most recent first */
+  async getAllTips() {
+    return this.prisma.platformTip.findMany({
+      include: {
+        donor: {
+          select: { id: true, walletAddress: true, displayName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** Get a single tip by ID with donor and donation info */
+  async getTipById(id: string) {
+    const tip = await this.prisma.platformTip.findUnique({
+      where: { id },
+      include: {
+        donor: { select: { id: true, walletAddress: true, displayName: true } },
+        donation: { select: { id: true, amount: true, campaignId: true } },
+      },
+    });
+
+    if (!tip) throw new NotFoundException('Tip not found');
+    return tip;
+  }
+
+  /** Get a paginated leaderboard of confirmed donations for a campaign */
+  async getCampaignDonations(
+    campaignId: string,
+    page = 1,
+    limit = 20,
+    sortBy: 'amount' | 'createdAt' = 'amount',
+    order: 'asc' | 'desc' = 'desc',
+  ) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
+    if (!campaign) throw new NotFoundException('Campaign not found');
+
+    const skip = (page - 1) * limit;
+    const orderByClause: Record<string, string> = {};
+    orderByClause[sortBy] = order;
+
+    const total = await this.prisma.donation.count({
+      where: { campaignId, status: 'CONFIRMED' },
+    });
+
+    const donations = await this.prisma.donation.findMany({
+      where: { campaignId, status: 'CONFIRMED' },
+      include: { donor: { select: { walletAddress: true } } },
+      orderBy: orderByClause,
+      skip,
+      take: limit,
+    });
+
+    const donationsWithRank = donations.map((donation, index) => ({
+      rank: skip + index + 1,
+      walletAddress: donation.isAnonymous
+        ? 'Anonymous'
+        : (donation.donor?.walletAddress ?? 'Anonymous'),
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      createdAt: donation.createdAt,
+      txHash: donation.txHash,
+    }));
+
+    return {
+      donations: donationsWithRank,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    };
+  }
+
+  /** Get filtered/sorted donation history for a specific user */
+  async getUserDonationHistory(
+    userId: string,
+    page = 1,
+    limit = 20,
+    sortBy: 'amount' | 'createdAt' = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.DonationWhereInput = {
+      donorId: userId,
+      status: 'CONFIRMED',
+    };
+    if (campaignId) where.campaignId = campaignId;
+    if (startDate || endDate) {
+      where.donatedAt = {};
+      if (startDate) where.donatedAt.gte = new Date(startDate);
+      if (endDate) where.donatedAt.lte = new Date(endDate);
+    }
+
+    const orderByClause: Record<string, string> = {};
+    orderByClause[sortBy] = order;
+
+    const total = await this.prisma.donation.count({ where });
+
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: { campaign: { select: { id: true, title: true, status: true } } },
+      orderBy: orderByClause,
+      skip,
+      take: limit,
+    });
+
+    const donationHistory = donations.map((donation) => ({
+      id: donation.id,
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      status: donation.status,
+      campaignId: donation.campaignId,
+      campaignTitle: donation.campaign?.title || 'Unknown Campaign',
+      campaignStatus: donation.campaign?.status || 'UNKNOWN',
+      txHash: donation.txHash,
+      donatedAt: donation.donatedAt,
+      createdAt: donation.createdAt,
+    }));
+
+    const totalDonatedResult = await this.prisma.donation.aggregate({
+      where,
+      _sum: { amount: true },
+      _count: true,
+    });
+
+    const totalDonated = totalDonatedResult._sum.amount?.toString() || '0';
+    const totalDonations = totalDonatedResult._count;
+    const averageDonation =
+      totalDonations > 0
+        ? (parseFloat(totalDonated) / totalDonations).toString()
+        : '0';
+
+    return {
+      donations: donationHistory,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+      summary: { totalDonated, totalDonations, averageDonation },
+    };
+  }
+
+  /** Export user donations as CSV string */
+  async exportUserDonationsAsCSV(
+    userId: string,
+    campaignId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<string> {
+    const where: Prisma.DonationWhereInput = {
+      donorId: userId,
+      status: 'CONFIRMED',
+    };
+    if (campaignId) where.campaignId = campaignId;
+    if (startDate || endDate) {
+      where.donatedAt = {};
+      if (startDate) where.donatedAt.gte = new Date(startDate);
+      if (endDate) where.donatedAt.lte = new Date(endDate);
+    }
+
+    const donations = await this.prisma.donation.findMany({
+      where,
+      include: { campaign: { select: { title: true } } },
+      orderBy: { donatedAt: 'desc' },
+    });
+
+    const headers = ['Campaign', 'Amount', 'Asset', 'Date', 'Tx Hash', 'USD Equivalent'];
+    const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
+
+    for (const donation of donations) {
+      const row = [
+        `"${(donation.campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
+        donation.amount.toString(),
+        donation.assetCode,
+        donation.donatedAt.toISOString().split('T')[0],
+        `"${donation.txHash || ''}"`,
+        '0.00',
+      ];
+      rows.push(row.join(','));
+    }
+
+    return rows.join('\n');
+  }
+
   /** Get or create a user record by Stellar wallet address */
   private async getOrCreateUserByWallet(walletAddress: string) {
     const existing = await this.prisma.user.findUnique({
