@@ -1,4 +1,4 @@
-# 📚 StellarAid Schema Documentation Index
+# 📚 OrbitChain Schema Documentation Index
 
 ## Quick Navigation
 
@@ -273,7 +273,7 @@ README_SCHEMA.md (5 min)
 ## File Locations
 
 ```
-/workspaces/stellarAid-api/
+/workspaces/orbitchain-api/
 ├── README_SCHEMA.md                 ← START HERE
 ├── SCHEMA_DOCUMENTATION.md          ← Technical details
 ├── SCHEMA_RELATIONSHIPS.md          ← Visual & relationships
