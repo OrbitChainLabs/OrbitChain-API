@@ -154,7 +154,7 @@ export class NotificationsService {
   }
 
   /**
-   * Sends a suspension notice to the campaign creator.
+   * Sends a suspension notice to the campaign creator (synchronous logging).
    * Currently logged; replace with real mailer call in production.
    */
   async sendCampaignSuspensionEmail(payload: SuspensionEmailPayload): Promise<void> {
