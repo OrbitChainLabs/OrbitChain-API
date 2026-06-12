@@ -39,7 +39,7 @@ export class StellarTransactionsService {
   }
 
   /**
-   * Verify a Stellar transaction: confirms it's on-chain, the payment destination
+   * Verify a Stellar donation transaction: confirms it's on-chain, the payment destination
    * matches the campaign contract, the asset is accepted, and the amount is correct.
    */
   async verifyDonationTransaction(
