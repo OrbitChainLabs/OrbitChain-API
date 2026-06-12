@@ -28,9 +28,6 @@ npm-debug.log*
 # Coverage
 coverage
 
-# Prisma
-prisma/migrations/
-
 # Temp
 *.tmp
 tmp/
