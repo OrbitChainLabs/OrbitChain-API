@@ -38,6 +38,10 @@ export class StellarTransactionsService {
       'https://horizon-testnet.stellar.org';
   }
 
+  /**
+   * Verify a Stellar transaction: confirms it's on-chain, the payment destination
+   * matches the campaign contract, the asset is accepted, and the amount is correct.
+   */
   async verifyDonationTransaction(
     input: VerifyDonationTxInput,
   ): Promise<VerifiedDonationTx> {
@@ -108,6 +112,7 @@ export class StellarTransactionsService {
     };
   }
 
+  /** Fetch a transaction from Horizon with exponential backoff retry */
   async fetchTransactionWithRetry(txHash: string) {
     return withRetries(
       3,
@@ -134,6 +139,7 @@ export class StellarTransactionsService {
     );
   }
 
+  /** Fetch transaction operations from Horizon with exponential backoff retry */
   async fetchTransactionOperationsWithRetry(txHash: string) {
     return withRetries(
       3,
