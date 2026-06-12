@@ -23,7 +23,7 @@ export class EmailService {
   private readonly appBaseUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    this.fromAddress = config.get<string>('EMAIL_FROM', 'noreply@stellaraid.io');
+    this.fromAddress = config.get<string>('EMAIL_FROM', 'noreply@orbitchain.io');
     this.appBaseUrl = config.get<string>('APP_BASE_URL', 'http://localhost:3000');
   }
 
