@@ -1,6 +1,7 @@
 import { IsOptional, IsInt, Min, Max, IsIn, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+/** Query DTO for filtering and paginating user donation history */
 export class GetUserDonationsQueryDto {
   @IsOptional()
   @Type(() => Number)
