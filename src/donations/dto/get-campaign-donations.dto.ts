@@ -1,6 +1,7 @@
 import { IsOptional, IsInt, Min, Max, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
+/** Query DTO for paginating and sorting campaign donation leaderboard */
 export class GetCampaignDonationsQueryDto {
   @IsOptional()
   @Type(() => Number)
