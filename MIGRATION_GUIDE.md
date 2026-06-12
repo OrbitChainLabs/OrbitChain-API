@@ -39,14 +39,14 @@ Ensure your `.env` file has a valid `DATABASE_URL`:
 
 ```bash
 # Example for PostgreSQL (as configured in schema.prisma)
-DATABASE_URL="postgresql://username:password@localhost:5432/stellaraid_dev"
+DATABASE_URL="postgresql://username:password@localhost:5432/orbitchain_dev"
 ```
 
 ### Step 2: Create Initial Migration
 Generate the first migration file:
 
 ```bash
-cd /workspaces/stellarAid-api
+cd /workspaces/orbitchain-api
 npx prisma migrate dev --name init
 ```
 
@@ -86,7 +86,7 @@ For production environments:
 ### 1. Database Backup
 ```bash
 # PostgreSQL backup
-pg_dump stellaraid_prod > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump orbitchain_prod > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ### 2. Apply Migration
@@ -95,13 +95,13 @@ pg_dump stellaraid_prod > backup_$(date +%Y%m%d_%H%M%S).sql
 npx prisma migrate deploy
 
 # Or manually with SQL files in prisma/migrations/
-psql -U username -d stellaraid_prod < prisma/migrations/*/migration.sql
+psql -U username -d orbitchain_prod < prisma/migrations/*/migration.sql
 ```
 
 ### 3. Verify Deployment
 ```bash
 # Check database schema
-psql -U username -d stellaraid_prod -c "\d"
+psql -U username -d orbitchain_prod -c "\d"
 
 # Verify migration applied
 SELECT * FROM _prisma_migrations;
@@ -366,7 +366,7 @@ npx tsc --noEmit
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Prisma Migrate Guide](https://www.prisma.io/docs/concepts/components/prisma-migrate)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs)
-- [StellarAid Schema Documentation](./SCHEMA_DOCUMENTATION.md)
+- [OrbitChain Schema Documentation](./SCHEMA_DOCUMENTATION.md)
 - [Schema Relationships](./SCHEMA_RELATIONSHIPS.md)
 
 ---
