@@ -19,6 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  /** POST /admin/campaigns/:id/suspend — Suspend a campaign (admin only) */
   @Post('campaigns/:id/suspend')
   async suspendCampaign(
     @Param('id', ParseUUIDPipe) id: string,
