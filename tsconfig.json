@@ -1,4 +1,5 @@
 {
+  "//": "OrbitChain API TypeScript configuration",
   "compilerOptions": {
     "module": "node16",
     "moduleResolution": "node16",
