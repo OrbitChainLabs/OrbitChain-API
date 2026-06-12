@@ -25,7 +25,7 @@ export class AuthChallengeController {
 
     const nonce = randomBytes(16).toString('hex');
     const timestamp = Math.floor(Date.now() / 1000);
-    const challenge = `stellaraid:login:${nonce}:${timestamp}`;
+    const challenge = `orbitchain:login:${nonce}:${timestamp}`;
 
     return { challenge };
   }
