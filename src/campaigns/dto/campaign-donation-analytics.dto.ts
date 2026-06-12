@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsNumber, Min } from 'class-validator';
 
+/** Per-day donation aggregation for analytics */
 export class DonationPerDayDto {
   date: string;
   count: number;
