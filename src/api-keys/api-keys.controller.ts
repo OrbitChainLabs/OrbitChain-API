@@ -25,6 +25,7 @@ interface JwtUser {
 export class ApiKeysController {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** POST /api-keys — Generate a new API key (returns raw key only once) */
   @Post()
   async create(@Req() req: Request & { user: JwtUser }) {
     const rawKey = `sk_${randomBytes(32).toString('hex')}`;
@@ -51,6 +52,7 @@ export class ApiKeysController {
     };
   }
 
+  /** DELETE /api-keys/:id — Revoke an existing API key (soft-delete) */
   @Delete(':id')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async revoke(
