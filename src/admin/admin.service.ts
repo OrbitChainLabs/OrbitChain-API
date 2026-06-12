@@ -20,6 +20,7 @@ export class AdminService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  /** Suspend a campaign with an audit log entry and creator notification */
   async suspendCampaign(
     campaignId: string,
     dto: SuspendCampaignDto,
