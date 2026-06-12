@@ -8,6 +8,7 @@ import { createHash } from 'crypto';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 
+/** Authenticates requests using API keys (Bearer sk_...) for programmatic access */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}

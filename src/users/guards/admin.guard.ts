@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+/** Route guard that restricts access to users with ADMIN role */
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}

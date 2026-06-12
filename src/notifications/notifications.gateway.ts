@@ -25,6 +25,7 @@ import type { Server, Socket } from 'socket.io';
  *   - `notification`    – a new in-app notification for the user
  *   - `donation_received` – a real-time donation alert for campaign creators
  */
+/** WebSocket gateway for real-time notification delivery to authenticated clients */
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {

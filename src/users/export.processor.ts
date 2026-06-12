@@ -16,6 +16,7 @@ export interface ExportDonationJobResult {
   rowCount: number;
 }
 
+/** Bull queue processor that handles async CSV export of large donation histories */
 @Processor(QUEUE_EXPORT)
 export class ExportProcessor {
   private readonly logger = new Logger(ExportProcessor.name);

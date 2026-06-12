@@ -14,6 +14,7 @@ export interface EmailJobData {
   userId?: string;
 }
 
+/** Bull queue processor that sends emails via the EmailService */
 @Processor(QUEUE_EMAIL)
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);

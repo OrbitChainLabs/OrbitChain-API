@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
+/** Health indicator that checks Redis connectivity via cache-manager */
 @Injectable()
 export class RedisHealthIndicator extends HealthIndicator {
   private client: Redis;
