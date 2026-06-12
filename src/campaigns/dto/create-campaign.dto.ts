@@ -26,6 +26,7 @@ class MilestoneInput {
   dueDate?: string; // ISO date string
 }
 
+/** DTO for creating a new fundraising campaign */
 export class CreateCampaignDto {
   @IsString()
   @MaxLength(200)
