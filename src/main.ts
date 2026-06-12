@@ -10,7 +10,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('OrbitChain API')
-    .setDescription('API for StellarAid application')
+    .setDescription('API for OrbitChain application')
     .setVersion('1.0')
     .addBearerAuth(
       {
