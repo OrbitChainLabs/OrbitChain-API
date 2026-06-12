@@ -62,7 +62,7 @@ export class EmailService {
     return `${html}
 <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
 <p style="font-size:12px;color:#888">
-  You received this email because you have notifications enabled on StellarAid.
+  You received this email because you have notifications enabled on OrbitChain.
   <br />
   <a href="${unsubscribeUrl}" style="color:#666">Unsubscribe</a> from these emails or manage your
   <a href="${this.appBaseUrl}/users/me/notification-preferences" style="color:#666">notification preferences</a>.
