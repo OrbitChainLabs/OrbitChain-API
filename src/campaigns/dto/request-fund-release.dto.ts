@@ -1,5 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
+/** DTO for requesting a fund release against an unlocked milestone */
 export class RequestFundReleaseDto {
   @IsNotEmpty()
   @IsString()
