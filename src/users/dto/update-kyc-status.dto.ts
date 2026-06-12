@@ -6,6 +6,7 @@ export enum KYCStatusEnum {
   PENDING = 'PENDING',
 }
 
+/** DTO for admin KYC status updates */
 export class UpdateKYCStatusDto {
   @IsEnum(KYCStatusEnum)
   status: KYCStatusEnum;
