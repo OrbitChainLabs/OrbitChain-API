@@ -1,5 +1,6 @@
 import { IsOptional, IsString, MaxLength, IsUrl } from 'class-validator';
 
+/** DTO for updating an existing campaign (partial update) */
 export class UpdateCampaignDto {
   @IsOptional()
   @IsString()
