@@ -6,6 +6,7 @@ import { CreateContractDto } from './dto/create-contract.dto';
 export class ContractsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Deploy a new smart contract record linked to a campaign */
   async createContract(dto: CreateContractDto) {
     // Verify campaign exists
     const campaign = await this.prisma.campaign.findUnique({
@@ -42,6 +43,7 @@ export class ContractsService {
     });
   }
 
+  /** Retrieve full contract details including linked campaign info */
   async getContractDetails(contractId: string) {
     const contract = await this.prisma.smartContract.findUnique({
       where: { contractId },
