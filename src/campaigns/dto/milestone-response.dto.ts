@@ -1,3 +1,4 @@
+/** Tracks a milestone status change event */
 export class MilestoneStatusHistoryDto {
   id: string;
   fromStatus: string | null;
@@ -5,6 +6,7 @@ export class MilestoneStatusHistoryDto {
   changedAt: Date;
 }
 
+/** Response DTO for a campaign milestone */
 export class MilestoneResponseDto {
   id: string;
   title: string;
