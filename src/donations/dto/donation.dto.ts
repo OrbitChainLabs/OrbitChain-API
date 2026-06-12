@@ -30,6 +30,7 @@ export class CreateDonationDto {
   tipAsset?: string;
 }
 
+/** Response DTO for donation records returned by the API */
 export class DonationResponseDto {
   id: string;
   amount: string;
