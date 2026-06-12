@@ -55,7 +55,8 @@ export class NotificationsService {
 
   /**
    * Check whether a user has enabled email notifications for a given notification type.
-   * preferenceKey corresponds to keys in the preferences JSON: donationReceived, milestoneUnlocked, campaignUpdate, etc.
+   * Falls back to true if no preferences are set (opt-in by default).
+   * preferenceKey corresponds to keys: donationReceived, milestoneUnlocked, campaignUpdate, etc.
    */
   async shouldSendEmail(userId: string, preferenceKey: string): Promise<boolean> {
     try {
@@ -86,9 +87,7 @@ export class NotificationsService {
     }
   }
 
-  /**
-   * Queue a donation received email via Bull.
-   */
+  /** Queue a donation received email via Bull for async processing */
   async sendDonationReceivedEmail(payload: DonationReceivedPayload): Promise<void> {
     const template = donationReceivedTemplate;
     const html = template.html({
@@ -111,9 +110,7 @@ export class NotificationsService {
     this.logger.log(`Queued donation received email to ${payload.toEmail}`);
   }
 
-  /**
-   * Queue a milestone unlocked email via Bull.
-   */
+  /** Queue a milestone unlocked email via Bull for async processing */
   async sendMilestoneUnlockedEmail(payload: MilestoneUnlockedPayload): Promise<void> {
     const template = milestoneUnlockedTemplate;
     const html = template.html({
@@ -134,9 +131,7 @@ export class NotificationsService {
     this.logger.log(`Queued milestone unlocked email to ${payload.toEmail}`);
   }
 
-  /**
-   * Queue a campaign update email via Bull.
-   */
+  /** Queue a campaign update email via Bull for async processing */
   async sendCampaignUpdateEmail(payload: CampaignUpdatePayload): Promise<void> {
     const template = campaignUpdateTemplate;
     const html = template.html({
@@ -159,7 +154,8 @@ export class NotificationsService {
   }
 
   /**
-   * Sends a suspension notice to the campaign creator (synchronous, not queued).
+   * Sends a suspension notice to the campaign creator.
+   * Currently logged; replace with real mailer call in production.
    */
   async sendCampaignSuspensionEmail(payload: SuspensionEmailPayload): Promise<void> {
     this.logger.log(
