@@ -3,6 +3,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import KeyvRedis from '@keyv/redis';
 
+/** Provides global Redis-backed cache via @keyv/redis for the application */
 @Module({
   imports: [
     CacheModule.registerAsync({
