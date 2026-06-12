@@ -23,20 +23,14 @@ import { AdminGuard } from './guards/admin.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /**
-   * GET /users/me
-   * Retrieve authenticated user's full profile
-   */
+  /** GET /users/me — Retrieve authenticated user's full profile */
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMyProfile(@Request() req: any): Promise<UserProfileDto> {
     return this.usersService.getMyProfile(req.user.walletAddress);
   }
 
-  /**
-   * PATCH /users/me
-   * Update authenticated user's profile
-   */
+  /** PATCH /users/me — Update authenticated user's profile */
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   async updateMyProfile(
@@ -46,10 +40,7 @@ export class UsersController {
     return this.usersService.updateMyProfile(req.user.walletAddress, updateDto);
   }
 
-  /**
-   * GET /users/me/donations
-   * Retrieve authenticated user's donation history with filters and sorting
-   */
+  /** GET /users/me/donations — Retrieve donation history with filters */
   @UseGuards(JwtAuthGuard)
   @Get('me/donations')
   async getMyDonations(
@@ -129,10 +120,7 @@ export class UsersController {
     res.status(200).json({ status: result.status, rowCount: result.rowCount });
   }
 
-  /**
-   * GET /users/me/notification-preferences
-   * Retrieve authenticated user's notification preferences
-   */
+  /** GET /users/me/notification-preferences — Retrieve preferences */
   @UseGuards(JwtAuthGuard)
   @Get('me/notification-preferences')
   async getNotificationPreferences(
@@ -141,10 +129,7 @@ export class UsersController {
     return this.usersService.getNotificationPreferences(req.user.sub);
   }
 
-  /**
-   * PATCH /users/me/notification-preferences
-   * Update authenticated user's notification preferences
-   */
+  /** PATCH /users/me/notification-preferences — Update preferences */
   @UseGuards(JwtAuthGuard)
   @Patch('me/notification-preferences')
   async updateNotificationPreferences(
@@ -157,10 +142,7 @@ export class UsersController {
     );
   }
 
-  /**
-   * GET /users/:walletAddress
-   * Retrieve public profile for a user by wallet address
-   */
+  /** GET /users/:walletAddress — Retrieve public user profile */
   @Get(':walletAddress')
   async getPublicProfile(
     @Param('walletAddress') walletAddress: string,
