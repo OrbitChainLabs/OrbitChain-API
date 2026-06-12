@@ -34,7 +34,7 @@ export class JwtAuthGuard implements CanActivate {
       const payload = this.jwt.verify(token, {
         secret: this.config.get<string>(
           'JWT_SECRET',
-          'stellaraid-default-secret',
+          'orbitchain-default-secret',
         ),
       });
       request.user = payload as Record<string, unknown>;
