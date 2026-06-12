@@ -20,7 +20,10 @@ export class HealthController {
     private readonly config: ConfigService,
   ) {}
 
-  /** Liveness probe — returns 200 when the process is running. */
+  /**
+   * Liveness probe — returns 200 when the process, database, Redis,
+   * and Stellar Horizon are all reachable.
+   */
   @Get()
   @HealthCheck()
   check() {
@@ -34,7 +37,7 @@ export class HealthController {
     ]);
   }
 
-  /** Readiness probe — confirms all dependencies are reachable. */
+  /** Readiness probe — alias for the liveness check at /health/ready */
   @Get('ready')
   @HealthCheck()
   ready() {

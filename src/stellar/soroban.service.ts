@@ -60,6 +60,7 @@ export class SorobanService {
     return this.feeBumpKeypair;
   }
 
+  /** Simulate a Soroban contract read call without submitting a transaction */
   async readContractData(
     contractId: string,
     functionName: string,
@@ -94,6 +95,7 @@ export class SorobanService {
     }
   }
 
+  /** Submit and sign a Soroban contract invocation, optionally with fee bump */
   async invokeContract(
     contractId: string,
     functionName: string,
