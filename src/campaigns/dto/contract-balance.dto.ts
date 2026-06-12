@@ -1,3 +1,4 @@
+/** Represents an on-chain asset balance for a Stellar account */
 export class AssetBalanceDto {
   assetCode: string;
   assetIssuer?: string;
