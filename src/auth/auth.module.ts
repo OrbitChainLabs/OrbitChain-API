@@ -11,7 +11,7 @@ import { AuthVerifyController } from './auth-verify.controller';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'stellaraid-default-secret'),
+        secret: config.get<string>('JWT_SECRET', 'orbitchain-default-secret'),
         signOptions: { expiresIn: '15m' },
       }),
     }),
