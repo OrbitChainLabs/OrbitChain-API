@@ -65,7 +65,7 @@ export class NotificationsGateway
 
       const secret = this.configService.get<string>(
         'JWT_SECRET',
-        'stellaraid-default-secret',
+        'orbitchain-default-secret',
       );
 
       const payload = this.jwtService.verify(token, { secret });
