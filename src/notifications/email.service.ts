@@ -59,7 +59,7 @@ export class EmailService {
   }
 
   /**
-   * Adds an unsubscribe link footer to the email HTML body.
+   * Appends an unsubscribe link and notification preferences footer to every email.
    */
   private wrapWithFooter(html: string, email: string): string {
     const unsubscribeUrl = `${this.appBaseUrl}/users/me/notification-preferences?email=${encodeURIComponent(email)}`;
