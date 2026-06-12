@@ -1,4 +1,4 @@
-# StellarAid Schema - Quick Reference Card
+# OrbitChain Schema - Quick Reference Card
 
 ## Models at a Glance
 
