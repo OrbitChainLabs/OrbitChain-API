@@ -8,6 +8,11 @@ import { Horizon, xdr, scValToNative, StrKey } from '@stellar/stellar-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUE_CONTRACT_EVENTS } from '../queue/queue.constants';
 
+/**
+ * Listens for Stellar blockchain events (payments, contract events)
+ * and triggers donation processing workflows.
+ * Catches up on missed events on startup, then streams in real-time.
+ */
 @Injectable()
 export class StellarEventService implements OnApplicationBootstrap {
   private readonly logger = new Logger(StellarEventService.name);
