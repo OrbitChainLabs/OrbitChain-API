@@ -1,3 +1,4 @@
+/** DTO for authenticated user's full profile response */
 export class UserProfileDto {
   id: string;
   walletAddress: string;
@@ -6,7 +7,6 @@ export class UserProfileDto {
   avatarUrl?: string;
   role: string;
   kycStatus: string;
-  verifiedStatus: boolean;
   createdAt: Date;
   updatedAt: Date;
 
@@ -16,11 +16,12 @@ export class UserProfileDto {
   campaignCount?: number;
 }
 
+/** DTO for a user's public-facing profile */
 export class PublicUserProfileDto {
   displayName?: string;
   avatarUrl?: string;
   bio?: string;
-  verifiedStatus: boolean;
+  kycStatus: string;
   campaignCount: number;
   totalRaised: number;
 }
