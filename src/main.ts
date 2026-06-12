@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('StellarAid API')
+    .setTitle('OrbitChain API')
     .setDescription('API for StellarAid application')
     .setVersion('1.0')
     .addBearerAuth(
