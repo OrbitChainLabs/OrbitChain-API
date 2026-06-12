@@ -61,6 +61,7 @@ export class StellarEventService implements OnApplicationBootstrap {
     }
   }
 
+  /** Catch up on missed events since last saved cursor, then start real-time streaming */
   private async catchUpAndStartStream() {
     if (this.isConnecting) return;
     this.isConnecting = true;
