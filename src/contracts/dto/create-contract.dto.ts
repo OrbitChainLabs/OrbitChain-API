@@ -1,5 +1,6 @@
 import { IsString, IsNotEmpty, IsUUID, IsOptional, IsDateString } from 'class-validator';
 
+/** DTO for registering a new Soroban smart contract */
 export class CreateContractDto {
   @IsString()
   @IsNotEmpty()
