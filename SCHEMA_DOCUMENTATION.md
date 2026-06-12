@@ -1,7 +1,7 @@
-# StellarAid Database Schema Documentation
+# OrbitChain Database Schema Documentation
 
 ## Overview
-This document provides a comprehensive overview of the StellarAid database schema design, including all models, relationships, constraints, and design decisions.
+This document provides a comprehensive overview of the OrbitChain database schema design, including all models, relationships, constraints, and design decisions.
 
 **Status**: ✅ Schema validated and ready for first migration
 
@@ -442,7 +442,7 @@ Before running the first migration:
 
 **Design Principles Applied**:
 1. ✅ Single Responsibility: Each model has a clear, focused purpose
-2. ✅ Domain Consistency: Naming and structure reflect StellarAid domain
+2. ✅ Domain Consistency: Naming and structure reflect OrbitChain domain
 3. ✅ Referential Integrity: Strong relationships with cascading deletes
 4. ✅ Audit Trail: AuditLog captures all significant actions
 5. ✅ Performance: Strategic indices on all foreign keys and search fields
