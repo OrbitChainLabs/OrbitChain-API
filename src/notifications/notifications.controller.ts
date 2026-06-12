@@ -18,8 +18,7 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   /**
-   * GET /notifications
-   * Returns the last 50 notifications for the authenticated user.
+   * GET /notifications — Returns the last 50 notifications.
    * Optionally filter by ?isRead=true|false
    */
   @Get()
@@ -33,20 +32,14 @@ export class NotificationsController {
     return this.notificationsService.getNotifications(userId, isReadFilter);
   }
 
-  /**
-   * PATCH /notifications/mark-read
-   * Marks ALL notifications for the authenticated user as read.
-   */
+  /** PATCH /notifications/mark-read — Mark all notifications as read */
   @Patch('mark-read')
   async markAllRead(@Req() req: Request & { user: any }) {
     const userId = req.user?.sub as string;
     return this.notificationsService.markAllRead(userId);
   }
 
-  /**
-   * PATCH /notifications/:id/mark-read
-   * Marks a single notification as read.
-   */
+  /** PATCH /notifications/:id/mark-read — Mark a single notification as read */
   @Patch(':id/mark-read')
   async markOneRead(
     @Req() req: Request & { user: any },
