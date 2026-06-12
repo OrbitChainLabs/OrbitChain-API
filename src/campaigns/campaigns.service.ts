@@ -57,7 +57,7 @@ export class CampaignsService {
       throw new NotFoundException('Campaign not found');
     }
 
-    const updated = await this.prisma.campaign.update({
+    return this.prisma.campaign.update({
       where: { id: campaignId },
       data: {
         title: dto.title ?? campaign.title,
@@ -66,6 +66,7 @@ export class CampaignsService {
         imageUrl: dto.coverImageUrl ?? campaign.imageUrl,
       },
     });
+  }
 
   /**
    * Browse public campaigns with pagination, filtering, and sorting
