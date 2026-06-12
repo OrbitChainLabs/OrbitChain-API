@@ -180,6 +180,10 @@ export class CampaignsService {
     });
   }
 
+  /**
+   * Fetch on-chain contract balance from Stellar and compare with stored raisedAmount.
+   * Auto-corrects discrepancies.
+   */
   async getContractBalance(campaignId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
