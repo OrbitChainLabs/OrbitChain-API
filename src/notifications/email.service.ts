@@ -15,6 +15,10 @@ export interface SendEmailOptions {
   unsubscribeUrl?: string;
 }
 
+/**
+ * Transports emails via SMTP (nodemailer).
+ * Falls back to console logging in development when no SMTP creds are set.
+ */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
