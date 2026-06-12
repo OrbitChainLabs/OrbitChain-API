@@ -59,6 +59,7 @@ export class CampaignsController {
     return this.campaignsService.getCampaignStats(id);
   }
 
+  /** POST /campaigns — Create a new fundraising campaign */
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(
@@ -69,6 +70,7 @@ export class CampaignsController {
     return this.campaignsService.createCampaign(userId, body);
   }
 
+  /** PATCH /campaigns/:id — Update campaign metadata (protected fields excluded) */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async update(
