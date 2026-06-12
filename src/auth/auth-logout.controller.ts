@@ -18,6 +18,10 @@ import {
 import Keyv from 'keyv';
 
 @ApiTags('auth')
+/**
+ * Handles JWT token invalidation (logout).
+ * Client-side token removal is sufficient; server-side blacklisting is optional.
+ */
 @Controller('auth')
 export class AuthLogoutController {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Keyv) {}
