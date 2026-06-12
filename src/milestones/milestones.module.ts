@@ -5,6 +5,7 @@ import { MilestonesService } from './milestones.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
 
+/** Module providing milestone tracking and fund release request management */
 @Module({
   imports: [
     PrismaModule,

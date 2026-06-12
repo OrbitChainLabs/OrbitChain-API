@@ -9,6 +9,7 @@ import { EmailService } from './email.service';
 import { EmailProcessor } from './email.processor';
 import { NotificationsGateway } from './notifications.gateway';
 
+/** Module providing WebSocket gateway, email notifications, and notification preferences */
 @Module({
   imports: [
     PrismaModule,

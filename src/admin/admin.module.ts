@@ -6,6 +6,7 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+/** Module providing admin campaign suspension, user moderation, and audit logging */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Campaign, AuditLog]),

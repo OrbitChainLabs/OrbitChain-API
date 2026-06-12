@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { QUEUE_EXPORT } from '../queue/queue.constants';
 
+/** Module providing user profiles, KYC management, notification prefs, and donation exports */
 @Module({
   imports: [
     PrismaModule,

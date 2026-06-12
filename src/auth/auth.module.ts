@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuthChallengeController } from './auth-challenge.controller';
 import { AuthVerifyController } from './auth-verify.controller';
 
+/** Module providing Stellar wallet challenge-response authentication and JWT issuance */
 @Module({
   imports: [
     JwtModule.registerAsync({

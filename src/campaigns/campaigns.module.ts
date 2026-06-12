@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../users/guards/admin.guard';
 import { DonationsModule } from '../donations/donations.module';
 
+/** Module providing campaign CRUD, browsing, featured campaigns, and stats */
 @Module({
   imports: [PrismaModule, AuthModule, DonationsModule, StellarModule],
   controllers: [CampaignsController, AdminCampaignsController],

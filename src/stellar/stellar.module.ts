@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { QueueModule } from '../queue/queue.module';
 import { StellarTransactionsService } from './stellar-transactions.service.js';
 
+/** Module providing Stellar Horizon, Soroban, and transaction services */
 @Module({
   imports: [PrismaModule, QueueModule],
   providers: [SorobanService, StellarEventService, StellarTransactionsService],
