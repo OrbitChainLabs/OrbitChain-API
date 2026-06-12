@@ -1,5 +1,5 @@
 /**
- * Email template helpers for StellarAid notifications.
+ * Email template helpers for OrbitChain notifications.
  * Each function returns an object with `subject` and `html` builder.
  */
 
