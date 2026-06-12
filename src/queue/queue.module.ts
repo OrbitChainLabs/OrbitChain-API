@@ -15,6 +15,7 @@ const DEAD_LETTER_SETTINGS = {
   removeOnFail: false,
 };
 
+/** Registers Bull queues with dead-letter settings: email, contract-events, analytics, export */
 @Module({
   imports: [
     BullModule.forRootAsync({
