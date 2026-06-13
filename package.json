@@ -1,7 +1,7 @@
 {
   "name": "orbitchain-api",
   "version": "0.0.1",
-  "description": "Decentralized fundraising and campaign management API on Stellar",
+  "description": "A decentralized fundraising and campaign management platform API built on NestJS with blockchain-verified transactions on the Stellar network, featuring milestone-based fund releases, Soroban smart contracts, and real-time event notifications",
   "author": "OrbitChain Team",
   "private": true,
   "license": "UNLICENSED",
