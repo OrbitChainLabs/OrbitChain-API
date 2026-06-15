@@ -27,8 +27,14 @@ export class EmailService {
   private readonly appBaseUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    this.fromAddress = config.get<string>('EMAIL_FROM', 'noreply@orbitchain.io');
-    this.appBaseUrl = config.get<string>('APP_BASE_URL', 'http://localhost:3000');
+    this.fromAddress = config.get<string>(
+      'EMAIL_FROM',
+      'noreply@orbitchain.io',
+    );
+    this.appBaseUrl = config.get<string>(
+      'APP_BASE_URL',
+      'http://localhost:3000',
+    );
   }
 
   private getTransporter(): Transporter {
@@ -91,14 +97,18 @@ export class EmailService {
 
     try {
       const info = await transporter.sendMail(mailOptions);
-      this.logger.log(`Email sent to ${options.to}: ${options.subject} (id=${info.messageId})`);
+      this.logger.log(
+        `Email sent to ${options.to}: ${options.subject} (id=${info.messageId})`,
+      );
 
       // In dev mode with jsonTransport, log the message content
       if (info.messageId && (info as any).message) {
         this.logger.debug(`Email body preview: ${(info as any).message}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to send email to ${options.to}: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to send email to ${options.to}: ${(error as Error).message}`,
+      );
       throw error;
     }
   }

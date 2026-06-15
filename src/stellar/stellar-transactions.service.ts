@@ -65,7 +65,10 @@ export class StellarTransactionsService {
       if (to !== input.destination) return false;
       if (!this.assetMatchesOperation(input.asset, op)) return false;
       if (!this.assetAccepted(input.acceptedAssets, input.asset)) return false;
-      if (input.amount && !amountEquals(String(op.amount ?? ''), input.amount)) {
+      if (
+        input.amount &&
+        !amountEquals(String(op.amount ?? ''), input.amount)
+      ) {
         return false;
       }
       return true;
@@ -103,8 +106,7 @@ export class StellarTransactionsService {
     return {
       txHash: input.txHash,
       paymentOperationId: String(matchingPayment.id),
-      sourceAccount:
-        tx.source_account ? String(tx.source_account) : undefined,
+      sourceAccount: tx.source_account ? String(tx.source_account) : undefined,
       destination: String(matchingPayment.to),
       amount: String(matchingPayment.amount),
       asset: resolvedAsset,
@@ -133,9 +135,11 @@ export class StellarTransactionsService {
             `Horizon error fetching transaction (${res.status})`,
           );
         }
-        return (await res.json()) as any;
+        return await res.json();
       },
-      (err) => err instanceof NotFoundException || err instanceof ServiceUnavailableException,
+      (err) =>
+        err instanceof NotFoundException ||
+        err instanceof ServiceUnavailableException,
     );
   }
 
@@ -163,14 +167,16 @@ export class StellarTransactionsService {
           );
         }
 
-        const json = (await res.json()) as any;
+        const json = await res.json();
         const records = json?._embedded?.records;
         if (!Array.isArray(records)) {
           throw new BadRequestException('Invalid Horizon operations response');
         }
-        return records as any[];
+        return records;
       },
-      (err) => err instanceof NotFoundException || err instanceof ServiceUnavailableException,
+      (err) =>
+        err instanceof NotFoundException ||
+        err instanceof ServiceUnavailableException,
     );
   }
 
@@ -191,9 +197,14 @@ export class StellarTransactionsService {
    * Fetch on-chain asset balances for a Stellar account (contract or wallet).
    * Queries Horizon for the account's native and issued asset balances.
    */
-  async getContractBalances(
-    contractId: string,
-  ): Promise<{ assetCode: string; assetIssuer?: string; balance: string; isNative: boolean }[]> {
+  async getContractBalances(contractId: string): Promise<
+    {
+      assetCode: string;
+      assetIssuer?: string;
+      balance: string;
+      isNative: boolean;
+    }[]
+  > {
     const res = await fetch(
       `${this.horizonUrl}/accounts/${encodeURIComponent(contractId)}`,
       { headers: { accept: 'application/json' } },
@@ -209,7 +220,7 @@ export class StellarTransactionsService {
       );
     }
 
-    const account = (await res.json()) as any;
+    const account = await res.json();
     const balances = account?.balances ?? [];
 
     return balances.map((b: any) => {
@@ -262,12 +273,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function assetsEqual(a: StellarAcceptedAsset, b: StellarAcceptedAsset): boolean {
+function assetsEqual(
+  a: StellarAcceptedAsset,
+  b: StellarAcceptedAsset,
+): boolean {
   if (a.assetType === 'native' && b.assetType === 'native') return true;
   if (a.assetType === 'credit' && b.assetType === 'credit') {
     return (
-      a.code.toUpperCase() === b.code.toUpperCase() &&
-      a.issuer === b.issuer
+      a.code.toUpperCase() === b.code.toUpperCase() && a.issuer === b.issuer
     );
   }
   return false;
@@ -300,4 +313,3 @@ function normalizeAmount(amount: string): string {
 function amountEquals(a: string, b: string): boolean {
   return normalizeAmount(a) === normalizeAmount(b);
 }
-

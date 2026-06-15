@@ -59,9 +59,6 @@ export class ApiKeysController {
     @Param('id') id: string,
     @Req() req: Request & { user: JwtUser },
   ): Promise<{ message: string }> {
-    @Param('id') id: string,
-    @Req() req: Request & { user: JwtUser },
-  ) {
     const apiKey = await this.prisma.apiKey.findUnique({ where: { id } });
 
     if (!apiKey) {

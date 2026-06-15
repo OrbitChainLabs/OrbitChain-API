@@ -14,8 +14,15 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateKYCStatusDto } from './dto/update-kyc-status.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
-import { NotificationPreferencesDto, UpdateNotificationPreferencesDto } from './dto/notification-preferences.dto';
-import { GetUserDonationsQueryDto, GetUserDonationsResponseDto, ExportDonationHistoryQueryDto } from './dto/get-user-donations.dto';
+import {
+  NotificationPreferencesDto,
+  UpdateNotificationPreferencesDto,
+} from './dto/notification-preferences.dto';
+import {
+  GetUserDonationsQueryDto,
+  GetUserDonationsResponseDto,
+  ExportDonationHistoryQueryDto,
+} from './dto/get-user-donations.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 
@@ -46,7 +53,7 @@ export class UsersController {
   async getMyDonations(
     @Request() req: any,
     @Query() query: GetUserDonationsQueryDto,
-  ): Promise<GetUserDonationsResponseDto> {
+  ): Promise<any> {
     const userId = req.user?.sub as string;
     return this.usersService.getUserDonationHistory(
       userId,
@@ -93,7 +100,10 @@ export class UsersController {
 
     // Small export — return CSV inline
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="donations.csv"',
+    );
     res.status(200).send(result.csv);
   }
 
@@ -112,7 +122,10 @@ export class UsersController {
 
     if (result.status === 'completed' && result.csv) {
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="donations.csv"',
+      );
       res.status(200).send(result.csv);
       return;
     }
@@ -168,7 +181,7 @@ export class AdminUsersController {
   ): Promise<{ success: boolean; message: string }> {
     return this.usersService.updateKYCStatus(
       userId,
-      updateDto.status as 'VERIFIED' | 'REJECTED' | 'PENDING',
+      updateDto.status,
       req.user.walletAddress,
     );
   }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 
@@ -13,15 +17,21 @@ export class ContractsService {
       where: { id: dto.campaignId },
     });
     if (!campaign) {
-      throw new NotFoundException(`Campaign with ID ${dto.campaignId} not found`);
+      throw new NotFoundException(
+        `Campaign with ID ${dto.campaignId} not found`,
+      );
     }
 
     // Check if contract already exists for this campaign
-    const existingCampaignContract = await this.prisma.smartContract.findUnique({
-      where: { campaignId: dto.campaignId },
-    });
+    const existingCampaignContract = await this.prisma.smartContract.findUnique(
+      {
+        where: { campaignId: dto.campaignId },
+      },
+    );
     if (existingCampaignContract) {
-      throw new BadRequestException(`Campaign already has a contract linked to it (Contract: ${existingCampaignContract.contractId})`);
+      throw new BadRequestException(
+        `Campaign already has a contract linked to it (Contract: ${existingCampaignContract.contractId})`,
+      );
     }
 
     // Check if contract ID is already registered
@@ -29,7 +39,9 @@ export class ContractsService {
       where: { contractId: dto.contractId },
     });
     if (existingContractId) {
-      throw new BadRequestException(`Contract ID ${dto.contractId} is already registered`);
+      throw new BadRequestException(
+        `Contract ID ${dto.contractId} is already registered`,
+      );
     }
 
     return this.prisma.smartContract.create({

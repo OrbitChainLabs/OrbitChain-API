@@ -1,6 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RequestFundReleaseDto, FundReleaseResponseDto, FundReleaseDetailDto } from '../campaigns/dto/request-fund-release.dto';
+import {
+  RequestFundReleaseDto,
+  FundReleaseResponseDto,
+  FundReleaseDetailDto,
+} from '../campaigns/dto/request-fund-release.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -28,7 +37,9 @@ export class MilestonesService {
     }
 
     if (campaign.creatorId !== creatorId) {
-      throw new ForbiddenException('Only campaign creator can request fund release');
+      throw new ForbiddenException(
+        'Only campaign creator can request fund release',
+      );
     }
 
     // Verify milestone exists and is UNLOCKED
@@ -42,7 +53,9 @@ export class MilestonesService {
     }
 
     if (milestone.campaignId !== campaignId) {
-      throw new BadRequestException('Milestone does not belong to this campaign');
+      throw new BadRequestException(
+        'Milestone does not belong to this campaign',
+      );
     }
 
     if (milestone.status !== 'UNLOCKED') {
@@ -72,7 +85,9 @@ export class MilestonesService {
     });
 
     if (existingRelease) {
-      throw new BadRequestException('There is already a pending fund release for this milestone');
+      throw new BadRequestException(
+        'There is already a pending fund release for this milestone',
+      );
     }
 
     // Create fund release record
@@ -106,7 +121,10 @@ export class MilestonesService {
    * Retrieve a single fund release record by ID.
    * Optionally verifies that the requesting user is the creator.
    */
-  async getFundReleaseById(releaseId: string, userId?: string): Promise<FundReleaseDetailDto> {
+  async getFundReleaseById(
+    releaseId: string,
+    userId?: string,
+  ): Promise<FundReleaseDetailDto> {
     const fundRelease = await this.prisma.fundRelease.findUnique({
       where: { id: releaseId },
       include: {
@@ -212,10 +230,11 @@ export class MilestonesService {
 
     for (const stat of stats) {
       result.total += stat._count;
-      const status = stat.status.toLowerCase() as keyof typeof result;
-      if (result[status]) {
-        result[status].count = stat._count;
-        result[status].amount = stat._sum.amount?.toString() || '0';
+      const status = (stat.status as string).toLowerCase() as keyof typeof result;
+      const entry = result[status];
+      if (entry && typeof entry !== 'number') {
+        entry.count = stat._count ?? 0;
+        entry.amount = (stat._sum.amount?.toString()) || '0';
       }
     }
 
@@ -225,7 +244,10 @@ export class MilestonesService {
   /**
    * Cancel a PENDING fund release. Only the original creator may cancel.
    */
-  async cancelFundRelease(releaseId: string, userId: string): Promise<FundReleaseResponseDto> {
+  async cancelFundRelease(
+    releaseId: string,
+    userId: string,
+  ): Promise<FundReleaseResponseDto> {
     const fundRelease = await this.prisma.fundRelease.findUnique({
       where: { id: releaseId },
     });
@@ -235,7 +257,9 @@ export class MilestonesService {
     }
 
     if (fundRelease.creatorId !== userId) {
-      throw new ForbiddenException('Only the creator can cancel this fund release');
+      throw new ForbiddenException(
+        'Only the creator can cancel this fund release',
+      );
     }
 
     if (fundRelease.status !== 'PENDING') {

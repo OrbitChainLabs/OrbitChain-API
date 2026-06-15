@@ -1,6 +1,7 @@
 import { Processor, Process } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUE_EXPORT } from '../queue/queue.constants';
 
@@ -32,14 +33,9 @@ export class ExportProcessor {
     this.logger.log(`Processing donation export for user ${userId}`);
 
     // Build where clause
-    const where: {
-      donorId: string;
-      status: string;
-      campaignId?: string;
-      donatedAt?: { gte?: Date; lte?: Date };
-    } = {
+    const where: Prisma.DonationWhereInput = {
       donorId: userId,
-      status: 'CONFIRMED',
+      status: 'CONFIRMED' as const,
     };
 
     if (campaignId) {
@@ -80,7 +76,7 @@ export class ExportProcessor {
 
     for (const donation of donations) {
       const row = [
-        `"${(donation.campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
+        `"${(donation.campaignId || 'Unknown').replace(/"/g, '""')}"`,
         donation.amount.toString(),
         donation.assetCode,
         donation.donatedAt.toISOString().split('T')[0],

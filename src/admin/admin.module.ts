@@ -1,18 +1,16 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Campaign } from '../campaigns/entities/campaign.entity';
-import { AuditLog } from '../audit/entities/audit-log.entity';
+import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 /** Module providing admin campaign suspension, user moderation, and audit logging */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Campaign, AuditLog]),
-    NotificationsModule,
-  ],
+  imports: [PrismaModule, AuthModule, NotificationsModule],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService, JwtAuthGuard, RolesGuard],
 })
 export class AdminModule {}

@@ -10,13 +10,17 @@ export class ContractsController {
 
   /** POST /contracts — Register a new smart contract for a campaign */
   @Post()
-  async create(@Body() dto: CreateContractDto): Promise<Record<string, unknown>> {
+  async create(
+    @Body() dto: CreateContractDto,
+  ): Promise<Record<string, unknown>> {
     return this.contractsService.createContract(dto);
   }
 
   /** GET /contracts/:contractId — Retrieve contract details with campaign info */
   @Get(':contractId')
-  async getDetails(@Param('contractId') contractId: string): Promise<Record<string, unknown>> {
+  async getDetails(
+    @Param('contractId') contractId: string,
+  ): Promise<Record<string, unknown>> {
     return this.contractsService.getContractDetails(contractId);
   }
 }

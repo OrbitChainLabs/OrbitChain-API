@@ -11,7 +11,10 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DonationsService } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
-import { DonationResponseDto, PlatformTipResponseDto } from './dto/donation.dto';
+import {
+  DonationResponseDto,
+  PlatformTipResponseDto,
+} from './dto/donation.dto';
 import { Request as ExpressRequest } from 'express';
 
 @Controller('donations')

@@ -23,7 +23,12 @@ import { NotificationsGateway } from './notifications.gateway';
       }),
     }),
   ],
-  providers: [NotificationsService, EmailService, EmailProcessor, NotificationsGateway],
+  providers: [
+    NotificationsService,
+    EmailService,
+    EmailProcessor,
+    NotificationsGateway,
+  ],
   exports: [NotificationsService, EmailService, NotificationsGateway],
 })
 export class NotificationsModule {}

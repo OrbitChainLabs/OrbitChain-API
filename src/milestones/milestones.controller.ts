@@ -9,7 +9,10 @@ import {
   Request,
 } from '@nestjs/common';
 import { MilestonesService } from './milestones.service';
-import { RequestFundReleaseDto, FundReleaseResponseDto } from '../campaigns/dto/request-fund-release.dto';
+import {
+  RequestFundReleaseDto,
+  FundReleaseResponseDto,
+} from '../campaigns/dto/request-fund-release.dto';
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
 
 @Controller('campaigns/:campaignId/milestones')
@@ -77,7 +80,10 @@ export class MilestonesController {
     @Request() req?: any,
   ) {
     const creatorId = req?.user?.sub;
-    return this.milestonesService.getCampaignFundReleases(campaignId, creatorId);
+    return this.milestonesService.getCampaignFundReleases(
+      campaignId,
+      creatorId,
+    );
   }
 
   /** Aggregate fund release stats grouped by status for a campaign */

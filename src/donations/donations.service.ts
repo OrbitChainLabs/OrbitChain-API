@@ -1,13 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CampaignsService } from '../campaigns/campaigns.service';
 import {
   StellarAcceptedAsset,
   StellarTransactionsService,
-} from '../stellar/stellar-transactions.service.js';
+} from '../stellar/stellar-transactions.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
-import { DonationResponseDto, PlatformTipResponseDto } from './dto/donation.dto';
+import {
+  DonationResponseDto,
+  PlatformTipResponseDto,
+} from './dto/donation.dto';
 
 @Injectable()
 export class DonationsService {
@@ -21,9 +28,16 @@ export class DonationsService {
   async createDonation(
     walletAddress: string,
     dto: CreateDonationDto,
-  ): Promise<{ donation: DonationResponseDto; tip: PlatformTipResponseDto | null }> {
+  ): Promise<{
+    donation: DonationResponseDto;
+    tip: PlatformTipResponseDto | null;
+  }> {
     if (!walletAddress) {
       throw new BadRequestException('Missing walletAddress in token');
+    }
+
+    if (!dto.txHash) {
+      throw new BadRequestException('txHash is required');
     }
 
     const existing = await this.prisma.donation.findUnique({
@@ -62,12 +76,12 @@ export class DonationsService {
       throw new BadRequestException('Campaign contractId is not set');
     }
 
-    const requestedAsset = parseAsset(dto.assetCode, dto.assetIssuer);
+    const requestedAsset = parseAsset(dto.assetCode || 'XLM', dto.assetIssuer);
     const acceptedAssets = coerceAcceptedAssets(campaign.acceptedAssets);
 
     await this.stellarTxs.verifyDonationTransaction({
       txHash: dto.txHash,
-      destination: campaign.contractId,
+      destination: campaign.contractId!,
       amount: dto.amount,
       asset: requestedAsset,
       acceptedAssets,
@@ -80,8 +94,9 @@ export class DonationsService {
         donorId: donor.id,
         campaignId: campaign.id,
         amount: dto.amount,
-        assetCode: dto.assetCode.toUpperCase(),
-        assetIssuer: requestedAsset.assetType === 'credit' ? requestedAsset.issuer : null,
+        assetCode: (dto.assetCode || 'XLM').toUpperCase(),
+        assetIssuer:
+          requestedAsset.assetType === 'credit' ? requestedAsset.issuer : null,
         txHash: dto.txHash,
         isAnonymous: dto.isAnonymous ?? false,
         status: 'CONFIRMED',
@@ -144,8 +159,8 @@ export class DonationsService {
 
       if (!donation) return false;
 
-      const { SorobanRpc } = await import('@stellar/stellar-sdk');
-      const server = new SorobanRpc.Server('https://soroban-rpc.stellar.org');
+      const { rpc: sorobanRpc } = await import('@stellar/stellar-sdk');
+      const server = new sorobanRpc.Server('https://soroban-rpc.stellar.org');
       const response = await server.getTransaction(txHash);
 
       if (response.status === 'SUCCESS') {
@@ -188,8 +203,8 @@ export class DonationsService {
 
       if (!tip) return false;
 
-      const { SorobanRpc } = await import('@stellar/stellar-sdk');
-      const server = new SorobanRpc.Server('https://soroban-rpc.stellar.org');
+      const { rpc: sorobanRpc } = await import('@stellar/stellar-sdk');
+      const server = new sorobanRpc.Server('https://soroban-rpc.stellar.org');
       const response = await server.getTransaction(txHash);
 
       if (response.status === 'SUCCESS') {
@@ -272,32 +287,28 @@ export class DonationsService {
     });
     if (!campaign) throw new NotFoundException('Campaign not found');
 
-    const skip = (page - 1) * limit;
-    const orderByClause: Record<string, string> = {};
-    orderByClause[sortBy] = order;
+    const skip = (page - 1) * limit;      const total = await this.prisma.donation.count({
+        where: { campaignId, status: 'CONFIRMED' },
+      });
 
-    const total = await this.prisma.donation.count({
-      where: { campaignId, status: 'CONFIRMED' },
-    });
+      const donations = await this.prisma.donation.findMany({
+        where: { campaignId, status: 'CONFIRMED' },
+        include: { donor: { select: { walletAddress: true } } },
+        orderBy: { [sortBy]: order },
+        skip,
+        take: limit,
+      });
 
-    const donations = await this.prisma.donation.findMany({
-      where: { campaignId, status: 'CONFIRMED' },
-      include: { donor: { select: { walletAddress: true } } },
-      orderBy: orderByClause,
-      skip,
-      take: limit,
-    });
-
-    const donationsWithRank = donations.map((donation, index) => ({
-      rank: skip + index + 1,
-      walletAddress: donation.isAnonymous
-        ? 'Anonymous'
-        : (donation.donor?.walletAddress ?? 'Anonymous'),
-      amount: donation.amount.toString(),
-      assetCode: donation.assetCode,
-      createdAt: donation.createdAt,
-      txHash: donation.txHash,
-    }));
+      const donationsWithRank = donations.map((donation, index) => ({
+        rank: skip + index + 1,
+        walletAddress: donation.isAnonymous
+          ? 'Anonymous'
+          : (donation.donor?.walletAddress ?? 'Anonymous'),
+        amount: donation.amount.toString(),
+        assetCode: donation.assetCode,
+        createdAt: donation.createdAt,
+        txHash: donation.txHash,
+      }));
 
     return {
       donations: donationsWithRank,
@@ -336,7 +347,9 @@ export class DonationsService {
 
     const donations = await this.prisma.donation.findMany({
       where,
-      include: { campaign: { select: { id: true, title: true, status: true } } },
+      include: {
+        campaign: { select: { id: true, title: true, status: true } },
+      },
       orderBy: orderByClause,
       skip,
       take: limit,
@@ -399,7 +412,14 @@ export class DonationsService {
       orderBy: { donatedAt: 'desc' },
     });
 
-    const headers = ['Campaign', 'Amount', 'Asset', 'Date', 'Tx Hash', 'USD Equivalent'];
+    const headers = [
+      'Campaign',
+      'Amount',
+      'Asset',
+      'Date',
+      'Tx Hash',
+      'USD Equivalent',
+    ];
     const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
 
     for (const donation of donations) {
@@ -435,7 +455,10 @@ export class DonationsService {
 }
 
 /** Parse and validate the donation asset from request */
-function parseAsset(assetCode: string, assetIssuer?: string): StellarAcceptedAsset {
+function parseAsset(
+  assetCode: string,
+  assetIssuer?: string,
+): StellarAcceptedAsset {
   const code = String(assetCode ?? '').trim();
   if (!code) {
     throw new BadRequestException('assetCode is required');
@@ -447,7 +470,9 @@ function parseAsset(assetCode: string, assetIssuer?: string): StellarAcceptedAss
 
   const issuer = String(assetIssuer ?? '').trim();
   if (!issuer) {
-    throw new BadRequestException('assetIssuer is required for non-native assets');
+    throw new BadRequestException(
+      'assetIssuer is required for non-native assets',
+    );
   }
 
   return { assetType: 'credit', code, issuer };
@@ -462,14 +487,14 @@ function coerceAcceptedAssets(value: unknown): StellarAcceptedAsset[] {
   const parsed: StellarAcceptedAsset[] = [];
   for (const item of value) {
     if (item && typeof item === 'object') {
-      const assetType = (item as any).assetType;
+      const assetType = item.assetType;
       if (assetType === 'native') {
         parsed.push({ assetType: 'native' });
         continue;
       }
       if (assetType === 'credit') {
-        const code = String((item as any).code ?? '');
-        const issuer = String((item as any).issuer ?? '');
+        const code = String(item.code ?? '');
+        const issuer = String(item.issuer ?? '');
         if (code && issuer) {
           parsed.push({ assetType: 'credit', code, issuer });
         }

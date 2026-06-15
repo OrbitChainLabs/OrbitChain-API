@@ -58,7 +58,10 @@ export class NotificationsService {
    * Falls back to true if no preferences are set (opt-in by default).
    * preferenceKey corresponds to keys: donationReceived, milestoneUnlocked, campaignUpdate, etc.
    */
-  async shouldSendEmail(userId: string, preferenceKey: string): Promise<boolean> {
+  async shouldSendEmail(
+    userId: string,
+    preferenceKey: string,
+  ): Promise<boolean> {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -88,7 +91,9 @@ export class NotificationsService {
   }
 
   /** Queue a donation received email via Bull for async processing */
-  async sendDonationReceivedEmail(payload: DonationReceivedPayload): Promise<void> {
+  async sendDonationReceivedEmail(
+    payload: DonationReceivedPayload,
+  ): Promise<void> {
     const template = donationReceivedTemplate;
     const html = template.html({
       donorName: payload.donorName,
@@ -111,7 +116,9 @@ export class NotificationsService {
   }
 
   /** Queue a milestone unlocked email via Bull for async processing */
-  async sendMilestoneUnlockedEmail(payload: MilestoneUnlockedPayload): Promise<void> {
+  async sendMilestoneUnlockedEmail(
+    payload: MilestoneUnlockedPayload,
+  ): Promise<void> {
     const template = milestoneUnlockedTemplate;
     const html = template.html({
       campaignTitle: payload.campaignTitle,
@@ -157,7 +164,9 @@ export class NotificationsService {
    * Sends a suspension notice to the campaign creator (synchronous logging).
    * Currently logged; replace with real mailer call in production.
    */
-  async sendCampaignSuspensionEmail(payload: SuspensionEmailPayload): Promise<void> {
+  async sendCampaignSuspensionEmail(
+    payload: SuspensionEmailPayload,
+  ): Promise<void> {
     this.logger.log(
       `[EMAIL] To: ${payload.toEmail} | Subject: Your campaign "${payload.campaignTitle}" has been suspended | Reason: ${payload.reason}`,
     );
@@ -167,5 +176,57 @@ export class NotificationsService {
     //   subject: `Your campaign "${payload.campaignTitle}" has been suspended`,
     //   html: `...`,
     // });
+  }
+
+  /**
+   * Get up to 50 notifications for a user, optionally filtered by read status.
+   */
+  async getNotifications(
+    userId: string,
+    isRead?: boolean,
+  ): Promise<{ data: unknown[]; total: number }> {
+    const where: { userId: string; isRead?: boolean } = { userId };
+    if (isRead !== undefined) {
+      where.isRead = isRead;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    return { data, total };
+  }
+
+  /** Mark all notifications as read for a user */
+  async markAllRead(
+    userId: string,
+  ): Promise<{ message: string; updated: number }> {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+
+    return {
+      message: 'All notifications marked as read',
+      updated: result.count,
+    };
+  }
+
+  /** Mark a single notification as read */
+  async markOneRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<{ message: string }> {
+    await this.prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { isRead: true },
+    });
+
+    return { message: 'Notification marked as read' };
   }
 }

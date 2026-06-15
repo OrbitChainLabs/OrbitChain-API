@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserProfileDto, PublicUserProfileDto } from './dto/user-profile.dto';
@@ -33,7 +34,7 @@ export class UsersService {
       where: { walletAddress },
       include: {
         campaigns: {
-          where: { status: 'ACTIVE' },
+          where: { status: 'ACTIVE' as const },
         },
         donations: true,
       },
@@ -61,7 +62,6 @@ export class UsersService {
       bio: user.bio || undefined,
       avatarUrl: user.avatarUrl || undefined,
       role: user.role,
-      kycStatus: user.kycStatus,
       kycStatus: user.kycStatus,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -92,11 +92,11 @@ export class UsersService {
         displayName: updateDto.displayName ?? user.displayName,
         bio: updateDto.bio ?? user.bio,
         avatarUrl: updateDto.avatarUrl ?? user.avatarUrl,
-        socialLinks: updateDto.socialLinks ?? user.socialLinks,
+        socialLinks: (updateDto.socialLinks ?? user.socialLinks) as any,
       },
       include: {
         campaigns: {
-          where: { status: 'ACTIVE' },
+          where: { status: 'ACTIVE' as const },
         },
         donations: true,
       },
@@ -132,14 +132,12 @@ export class UsersService {
   /**
    * Get public profile for a user by wallet address
    */
-  async getPublicProfile(
-    walletAddress: string,
-  ): Promise<PublicUserProfileDto> {
+  async getPublicProfile(walletAddress: string): Promise<PublicUserProfileDto> {
     const user = await this.prisma.user.findUnique({
       where: { walletAddress },
       include: {
         campaigns: {
-          where: { status: 'ACTIVE' },
+          where: { status: 'ACTIVE' as const },
         },
       },
     });
@@ -260,9 +258,9 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where = {
+    const where: Prisma.DonationWhereInput = {
       donorId: userId,
-      status: 'CONFIRMED',
+      status: 'CONFIRMED' as const,
       ...(campaignId && { campaignId }),
       ...(startDate || endDate
         ? {
@@ -299,7 +297,7 @@ export class UsersService {
     });
 
     // Format response
-    const donationHistory = donations.map((donation) => ({
+    const donationHistory = donations.map((donation: any) => ({
       id: donation.id,
       amount: donation.amount.toString(),
       assetCode: donation.assetCode,
@@ -313,7 +311,7 @@ export class UsersService {
     }));
 
     // Calculate summary
-    const totalDonatedResult = await this.prisma.donation.aggregate({
+    const totalDonatedResult: any = await this.prisma.donation.aggregate({
       where,
       _sum: {
         amount: true,
@@ -321,8 +319,8 @@ export class UsersService {
       _count: true,
     });
 
-    const totalDonated = totalDonatedResult._sum.amount?.toString() || '0';
-    const totalDonations = totalDonatedResult._count;
+    const totalDonated: string = totalDonatedResult._sum?.amount?.toString() || '0';
+    const totalDonations: number = totalDonatedResult._count ?? 0;
     const averageDonation =
       totalDonations > 0
         ? (parseFloat(totalDonated) / totalDonations).toString()
@@ -357,14 +355,9 @@ export class UsersService {
     endDate?: string,
   ): Promise<{ csv?: string; jobId?: string; queued: boolean }> {
     // Build where clause
-    const where: {
-      donorId: string;
-      status: string;
-      campaignId?: string;
-      donatedAt?: { gte?: Date; lte?: Date };
-    } = {
+    const where: Prisma.DonationWhereInput = {
       donorId: userId,
-      status: 'CONFIRMED',
+      status: 'CONFIRMED' as const,
     };
 
     if (campaignId) {
@@ -407,12 +400,19 @@ export class UsersService {
       orderBy: { donatedAt: 'desc' },
     });
 
-    const headers = ['Campaign', 'Amount', 'Asset', 'Date', 'Tx Hash', 'USD Equivalent'];
+    const headers = [
+      'Campaign',
+      'Amount',
+      'Asset',
+      'Date',
+      'Tx Hash',
+      'USD Equivalent',
+    ];
     const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
 
     for (const donation of donations) {
       const row = [
-        `"${(donation.campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
+        `"${((donation as any).campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
         donation.amount.toString(),
         donation.assetCode,
         donation.donatedAt.toISOString().split('T')[0],
@@ -429,7 +429,9 @@ export class UsersService {
    * Get notification preferences for the current user.
    * Creates default preferences if none exist.
    */
-  async getNotificationPreferences(userId: string): Promise<NotificationPreferencesDto> {
+  async getNotificationPreferences(
+    userId: string,
+  ): Promise<NotificationPreferencesDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { notificationPreference: true },
@@ -450,7 +452,8 @@ export class UsersService {
       };
     }
 
-    return user.notificationPreference.preferences as unknown as NotificationPreferencesDto;
+    return user.notificationPreference
+      .preferences as unknown as NotificationPreferencesDto;
   }
 
   /**
@@ -495,8 +498,8 @@ export class UsersService {
     // Upsert the preference record
     const prefs = await this.prisma.notificationPreference.upsert({
       where: { userId },
-      update: { preferences: merged },
-      create: { userId, preferences: merged },
+      update: { preferences: merged as any },
+      create: { userId, preferences: merged as any },
     });
 
     return prefs.preferences as unknown as NotificationPreferencesDto;
@@ -519,7 +522,11 @@ export class UsersService {
 
     if (state === 'completed') {
       const result = job.returnvalue as { csv: string; rowCount: number };
-      return { status: 'completed', csv: result.csv, rowCount: result.rowCount };
+      return {
+        status: 'completed',
+        csv: result.csv,
+        rowCount: result.rowCount,
+      };
     }
 
     if (state === 'failed') {

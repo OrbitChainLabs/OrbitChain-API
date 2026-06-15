@@ -1,9 +1,9 @@
 import { Injectable, Inject, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import type { Cache } from 'cache-manager';
 import { Horizon, xdr, scValToNative, StrKey } from '@stellar/stellar-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUE_CONTRACT_EVENTS } from '../queue/queue.constants';
@@ -26,21 +26,28 @@ export class StellarEventService implements OnApplicationBootstrap {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_CONTRACT_EVENTS) private readonly contractEventsQueue: Queue,
+    @InjectQueue(QUEUE_CONTRACT_EVENTS)
+    private readonly contractEventsQueue: Queue,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {
-    this.horizonUrl = this.config.get<string>('STELLAR_HORIZON_URL') || 'https://horizon-testnet.stellar.org';
+    this.horizonUrl =
+      this.config.get<string>('STELLAR_HORIZON_URL') ||
+      'https://horizon-testnet.stellar.org';
     this.horizonServer = new Horizon.Server(this.horizonUrl);
   }
 
   async onApplicationBootstrap() {
     this.logger.log('Starting Stellar Event Listener Service...');
-    
+
     // Load last cursor from cache
-    const savedCursor = await this.cacheManager.get<string>('stellar:event_listener:cursor');
+    const savedCursor = await this.cacheManager.get<string>(
+      'stellar:event_listener:cursor',
+    );
     if (savedCursor) {
       this.lastCursor = savedCursor;
-      this.logger.log(`Loaded last processed transaction cursor: ${this.lastCursor}`);
+      this.logger.log(
+        `Loaded last processed transaction cursor: ${this.lastCursor}`,
+      );
     } else {
       this.logger.log('No saved cursor found. Starting from "now"');
     }
@@ -70,7 +77,9 @@ export class StellarEventService implements OnApplicationBootstrap {
       let currentCursor = this.lastCursor;
 
       if (currentCursor !== 'now') {
-        this.logger.log(`Fetching missed events since cursor: ${currentCursor}`);
+        this.logger.log(
+          `Fetching missed events since cursor: ${currentCursor}`,
+        );
         let hasMore = true;
         let catchUpCount = 0;
 
@@ -93,14 +102,18 @@ export class StellarEventService implements OnApplicationBootstrap {
             hasMore = false;
           }
         }
-        this.logger.log(`Catch up complete. Processed ${catchUpCount} transactions.`);
+        this.logger.log(
+          `Catch up complete. Processed ${catchUpCount} transactions.`,
+        );
       }
 
       if (this.active) {
         this.startStream(currentCursor);
       }
     } catch (err) {
-      this.logger.error(`Error during catch-up: ${err.message}. Retrying in 5 seconds...`);
+      this.logger.error(
+        `Error during catch-up: ${err.message}. Retrying in 5 seconds...`,
+      );
       setTimeout(() => this.catchUpAndStartStream(), 5000);
     } finally {
       this.isConnecting = false;
@@ -108,7 +121,9 @@ export class StellarEventService implements OnApplicationBootstrap {
   }
 
   private startStream(cursor: string) {
-    this.logger.log(`Starting real-time Horizon transaction stream from cursor: ${cursor}`);
+    this.logger.log(
+      `Starting real-time Horizon transaction stream from cursor: ${cursor}`,
+    );
     this.streamCloseFn = this.horizonServer
       .transactions()
       .cursor(cursor)
@@ -126,7 +141,7 @@ export class StellarEventService implements OnApplicationBootstrap {
   private reconnect() {
     if (!this.active) return;
     this.logger.log('Attempting to reconnect Horizon stream in 5 seconds...');
-    
+
     if (this.streamCloseFn) {
       try {
         this.streamCloseFn();
@@ -163,7 +178,10 @@ export class StellarEventService implements OnApplicationBootstrap {
       for (const event of events) {
         if (event.contractId && contractIds.includes(event.contractId)) {
           const eventType = event.topics[0];
-          if (eventType === 'DonationReceived' || eventType === 'MilestoneReleased') {
+          if (
+            eventType === 'DonationReceived' ||
+            eventType === 'MilestoneReleased'
+          ) {
             this.logger.log(
               `Found contract event [${eventType}] from contract ID ${event.contractId} in tx ${tx.hash}`,
             );
@@ -182,7 +200,10 @@ export class StellarEventService implements OnApplicationBootstrap {
         }
       }
     } catch (err) {
-      this.logger.error(`Error processing transaction events in tx ${tx.hash}:`, err.message);
+      this.logger.error(
+        `Error processing transaction events in tx ${tx.hash}:`,
+        err.message,
+      );
     }
 
     await this.saveCursor(tx.paging_token);
@@ -196,15 +217,20 @@ export class StellarEventService implements OnApplicationBootstrap {
   private parseEvents(resultMetaXdr: string): any[] {
     try {
       const meta = xdr.TransactionMeta.fromXDR(resultMetaXdr, 'base64');
-      if (meta.switch().name === 'v3' || meta.switch().value === 3) {
+      if (meta.v3()) {
         const sorobanMeta = meta.v3().sorobanMeta();
         if (sorobanMeta) {
           const contractEvents = sorobanMeta.events() || [];
           return contractEvents.map((event) => {
             const rawContractId = event.contractId();
-            const contractId = rawContractId ? StrKey.encodeContract(rawContractId) : null;
-            const topics = (event.topics() || []).map((t) => scValToNative(t));
-            const value = event.value() ? scValToNative(event.value()) : null;
+            const contractId = rawContractId
+              ? StrKey.encodeContract(rawContractId)
+              : null;
+            const body = event.body();
+            const v0 = body?.v0();
+            const topics = (v0?.topics() || []).map((t: any) => scValToNative(t));
+            const rawValue = v0?.data();
+            const value = rawValue ? scValToNative(rawValue) : null;
 
             return {
               contractId,
@@ -215,7 +241,10 @@ export class StellarEventService implements OnApplicationBootstrap {
         }
       }
     } catch (err) {
-      this.logger.error('Failed to parse result_meta_xdr for events:', err.message);
+      this.logger.error(
+        'Failed to parse result_meta_xdr for events:',
+        err.message,
+      );
     }
     return [];
   }

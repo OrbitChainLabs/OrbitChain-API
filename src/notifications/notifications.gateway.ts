@@ -47,7 +47,9 @@ export class NotificationsGateway
   ) {}
 
   afterInit(): void {
-    this.logger.log('WebSocket gateway initialized (namespace: /notifications)');
+    this.logger.log(
+      'WebSocket gateway initialized (namespace: /notifications)',
+    );
   }
 
   /**
@@ -57,8 +59,7 @@ export class NotificationsGateway
   async handleConnection(client: Socket): Promise<void> {
     try {
       const token =
-        client.handshake.auth?.token ??
-        client.handshake.query?.token;
+        client.handshake.auth?.token ?? client.handshake.query?.token;
 
       if (!token || typeof token !== 'string') {
         throw new UnauthorizedException('Missing authentication token');
@@ -81,22 +82,31 @@ export class NotificationsGateway
       // Store userId on the socket for disconnect handling
       (client as any).userId = userId;
 
-      this.logger.log(`WebSocket client connected: user=${userId} socket=${client.id}`);
+      this.logger.log(
+        `WebSocket client connected: user=${userId} socket=${client.id}`,
+      );
     } catch (error) {
-      this.logger.warn(`WebSocket connection rejected: ${(error as Error).message}`);
+      this.logger.warn(
+        `WebSocket connection rejected: ${(error as Error).message}`,
+      );
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket): void {
     const userId = (client as any).userId ?? 'unknown';
-    this.logger.log(`WebSocket client disconnected: user=${userId} socket=${client.id}`);
+    this.logger.log(
+      `WebSocket client disconnected: user=${userId} socket=${client.id}`,
+    );
   }
 
   /**
    * Emit a generic notification event to a specific user's room.
    */
-  emitNotification(userId: string, notification: Record<string, unknown>): void {
+  emitNotification(
+    userId: string,
+    notification: Record<string, unknown>,
+  ): void {
     this.server.to(`user:${userId}`).emit('notification', notification);
   }
 

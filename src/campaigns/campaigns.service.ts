@@ -2,13 +2,18 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StellarTransactionsService } from '../stellar/stellar-transactions.service';
-import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
+import {
+  BrowseCampaignsQueryDto,
+  BrowseCampaignsResponseDto,
+} from './dto/browse-campaigns.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import type { CreateUpdateDto } from './dto/create-update.dto';
 import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
 
 @Injectable()
@@ -23,10 +28,13 @@ export class CampaignsService {
    * Sets status to ACTIVE immediately upon creation.
    */
   async createCampaign(userId: string, dto: CreateCampaignDto) {
+    if (!dto.goalAmount || parseFloat(dto.goalAmount) <= 0) {
+      throw new BadRequestException('goalAmount is required and must be greater than 0');
+    }
     const milestoneCreates = (dto.milestones || []).map((m) => ({
       title: m.title,
       description: m.description ?? null,
-      targetAmount: m.targetAmount ?? undefined,
+      targetAmount: (m.targetAmount ?? 0) as any,
       dueDate: m.dueDate ? new Date(m.dueDate) : undefined,
     }));
 
@@ -39,20 +47,26 @@ export class CampaignsService {
         story: dto.story ?? null,
         imageUrl: dto.coverImageUrl ?? undefined,
         category: dto.category ?? undefined,
-        goalAmount: dto.goalAmount ?? undefined,
+        goalAmount: dto.goalAmount,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         status: 'ACTIVE',
         creatorId: userId,
         contractId: dto.contractId ?? undefined,
         acceptedAssets: acceptedAssets.length > 0 ? acceptedAssets : undefined,
         milestones:
-          milestoneCreates.length > 0 ? { create: milestoneCreates } : undefined,
+          milestoneCreates.length > 0
+            ? { create: milestoneCreates }
+            : undefined,
       },
       include: { milestones: true },
     });
   }
 
-  async updateCampaign(userId: string, campaignId: string, dto: UpdateCampaignDto) {
+  async updateCampaign(
+    userId: string,
+    campaignId: string,
+    dto: UpdateCampaignDto,
+  ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
     });
@@ -197,7 +211,9 @@ export class CampaignsService {
       throw new BadRequestException('Campaign has no contractId set');
     }
 
-    const balances = await this.stellarTransactions.getContractBalances(campaign.contractId);
+    const balances = await this.stellarTransactions.getContractBalances(
+      campaign.contractId,
+    );
 
     // Calculate total on-chain balance
     let onChainTotal = 0;
@@ -206,7 +222,8 @@ export class CampaignsService {
     }
 
     const storedRaisedAmount = parseFloat(campaign.raisedAmount.toString());
-    const discrepancyDetected = Math.abs(onChainTotal - storedRaisedAmount) > 0.0001;
+    const discrepancyDetected =
+      Math.abs(onChainTotal - storedRaisedAmount) > 0.0001;
 
     // If discrepancy detected, update the stored raisedAmount
     if (discrepancyDetected) {
@@ -269,7 +286,7 @@ export class CampaignsService {
           id: true,
           title: true,
           content: true,
-          imageUrl: true,
+          imageUrls: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -278,13 +295,64 @@ export class CampaignsService {
       }),
     ]);
 
-    // Normalise imageUrl → imageUrls array as described in the issue
-    const data = updates.map(({ imageUrl, ...u }) => ({
+    // Normalise imageUrls field
+    const data = updates.map(({ imageUrls, ...u }) => ({
       ...u,
-      imageUrls: imageUrl ? [imageUrl] : [],
+      imageUrls: imageUrls || [],
     }));
 
     return { data, total, page, limit };
+  }
+
+  /** Create a campaign update (creator only) */
+  async createUpdate(campaignId: string, userId: string, dto: CreateUpdateDto) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true, creatorId: true },
+    });
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${campaignId} not found`);
+    }
+    if (campaign.creatorId !== userId) {
+      throw new ForbiddenException('Only the campaign creator can post updates');
+    }
+
+    return this.prisma.update.create({
+      data: {
+        campaignId,
+        creatorId: userId,
+        title: dto.title,
+        content: dto.content,
+        imageUrls: dto.imageUrls ?? [],
+      },
+    });
+  }
+
+  /** Soft-delete a campaign update (creator or admin) */
+  async deleteUpdate(
+    campaignId: string,
+    updateId: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<void> {
+    const update = await this.prisma.update.findUnique({
+      where: { id: updateId },
+      select: { id: true, creatorId: true, deletedAt: true },
+    });
+    if (!update) {
+      throw new NotFoundException(`Update ${updateId} not found`);
+    }
+    if (update.creatorId !== userId && !isAdmin) {
+      throw new ForbiddenException('Not authorized to delete this update');
+    }
+    if (update.deletedAt) {
+      throw new BadRequestException('Update is already deleted');
+    }
+
+    await this.prisma.update.update({
+      where: { id: updateId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   /** Compute aggregate stats for a campaign: total raised, donor count, etc. */
@@ -306,7 +374,7 @@ export class CampaignsService {
     const uniqueAssets = [...new Set(donations.map((d) => d.assetCode))];
     const avgDonation = donations.length ? totalRaised / donations.length : 0;
 
-    return { campaignId, totalRaised, donorCount, uniqueAssets, avgDonation };
+    return { campaignId, totalRaised, donorCount, uniqueAssets, avgDonation, donationsPerDay: [], topDonors: [] };
   }
 
   private async browseCampaignsWithFullTextSearch(input: {
@@ -322,7 +390,9 @@ export class CampaignsService {
     const filters = sqlCampaignFilters({ category, status });
 
     const [countRow, rankedRows] = await this.prisma.$transaction([
-      this.prisma.$queryRaw<{ count: number }[]>`        SELECT COUNT(*)::int AS count
+      this.prisma.$queryRaw<
+        { count: number }[]
+      >`        SELECT COUNT(*)::int AS count
         FROM campaigns c
         WHERE ${filters.whereSql}
           AND to_tsvector('english',
@@ -432,7 +502,7 @@ function sqlCampaignFilters(input: { category?: string; status?: string }) {
   const whereSql =
     whereParts.length === 1
       ? whereParts[0]
-      : Prisma.sql`${Prisma.join(whereParts, Prisma.sql` AND `)}`;
+      : Prisma.sql`${Prisma.join(whereParts, ' AND ')}`;
 
   return { whereSql };
 }
