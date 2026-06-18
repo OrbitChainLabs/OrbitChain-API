@@ -83,7 +83,9 @@ export class CampaignsController {
       );
     }
 
-    return this.campaignsService.updateCampaign(req.user.id, id, body);
+    const userId = req.user?.sub as string;
+    const isAdmin = req.user?.role === 'ADMIN';
+    return this.campaignsService.updateCampaign(userId, id, body, isAdmin);
   }
 
   @Get()
