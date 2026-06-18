@@ -120,4 +120,9 @@ jobs:
         run: npm ci
 
       - name: Prisma validate
+        # Schema uses `url = env("DATABASE_URL")`; prisma validate only checks
+        # schema syntax and does not connect, but it still needs the var to be
+        # defined. Inject a dummy URL so the optional job can pass in CI.
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
         run: npx prisma validate
