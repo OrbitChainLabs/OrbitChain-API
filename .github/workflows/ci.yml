@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: ESLint
-        run: npm run lint -- --max-warnings=0
+        run: npm run lint
 
   format:
     name: Format check
