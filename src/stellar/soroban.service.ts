@@ -162,6 +162,9 @@ export class SorobanService {
 
       if (response.status === 'ERROR') {
         throw this.parseTxResultError(((response as { errorResultXdr?: string; errorResult?: string }).errorResultXdr ?? (response as { errorResultXdr?: string; errorResult?: string }).errorResult) ?? '');
+        throw this.parseTxResultError(
+          (response as any).errorResultXdr || (response as any).errorResult,
+        );
       }
 
       const txResult = await this.pollTransaction(response.hash);

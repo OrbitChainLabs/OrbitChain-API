@@ -28,5 +28,11 @@ export class AdminController {
     @Request() req: AuthRequest,
   ): Promise<{ message: string }> {
     return this.adminService.suspendCampaign(id, dto, req.user.sub, req.user.walletAddress);
+    return this.adminService.suspendCampaign(
+      id,
+      dto,
+      req.user.sub,
+      req.user.email,
+    );
   }
 }
