@@ -11,6 +11,7 @@ dist
 # Environment files
 .env
 .env.*.local
+.env.test
 !.env.example
 
 # IDE
