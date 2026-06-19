@@ -25,6 +25,8 @@ export class EmailService {
   private transporter: Transporter | null = null;
   private readonly fromAddress: string;
   private readonly appBaseUrl: string;
+  private readonly nodeEnv: string;
+  private readonly emailPreviewEnabled: boolean;
 
   constructor(private readonly config: ConfigService) {
     this.fromAddress = config.get<string>(
@@ -35,6 +37,12 @@ export class EmailService {
       'APP_BASE_URL',
       'http://localhost:3000',
     );
+    this.nodeEnv = config.get<string>('NODE_ENV', 'development');
+    // Opt-in only: previewing the rendered email body in logs can leak PII
+    // (donor names, emails, donation amounts). Never honoured in production.
+    this.emailPreviewEnabled =
+      this.nodeEnv !== 'production' &&
+      config.get<string>('EMAIL_PREVIEW', '0') === '1';
   }
 
   private getTransporter(): Transporter {
@@ -80,6 +88,18 @@ export class EmailService {
   }
 
   /**
+   * Masks an email address for safe logging, e.g. "jo***@example.com".
+   * Keeps enough of the local part to be useful for debugging without
+   * exposing the full address in log aggregators.
+   */
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!domain) return '***';
+    const visible = local.slice(0, 2);
+    return `${visible}${'*'.repeat(Math.max(local.length - visible.length, 1))}@${domain}`;
+  }
+
+  /**
    * Send an email. In development mode without SMTP, logs the email to console.
    */
   async send(options: SendEmailOptions): Promise<void> {
@@ -98,16 +118,19 @@ export class EmailService {
     try {
       const info = await transporter.sendMail(mailOptions);
       this.logger.log(
-        `Email sent to ${options.to}: ${options.subject} (id=${info.messageId})`,
+        `Email sent to ${this.maskEmail(options.to)}: ${options.subject} (id=${info.messageId})`,
       );
 
-      // In dev mode with jsonTransport, log the message content
-      if (info.messageId && (info as any).message) {
-        this.logger.debug(`Email body preview: ${(info as any).message}`);
+      // Dev-only, explicit opt-in preview. Never logs the HTML body, and
+      // never runs in production regardless of how EMAIL_PREVIEW is set.
+      if (this.emailPreviewEnabled && info.messageId) {
+        this.logger.debug(
+          `Email preview (subject/recipient only): subject="${options.subject}" to=${this.maskEmail(options.to)}`,
+        );
       }
     } catch (error) {
       this.logger.error(
-        `Failed to send email to ${options.to}: ${(error as Error).message}`,
+        `Failed to send email to ${this.maskEmail(options.to)}: ${(error as Error).message}`,
       );
       throw error;
     }
