@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import type { JwtUser } from '../common/types/auth-request.interface';
 
 /**
  * Passport JWT strategy for OrbitChain.
@@ -17,14 +18,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: { sub: string; walletAddress: string; role?: string }) {
+  validate(payload: { sub: string; walletAddress: string; role?: string }): JwtUser {
     if (!payload?.sub) {
       throw new UnauthorizedException('Invalid token');
     }
     return {
-      userId: payload.sub,
+      sub: payload.sub,
       walletAddress: payload.walletAddress,
-      role: payload.role,
+      role: payload.role ?? 'donor',
     };
   }
 }

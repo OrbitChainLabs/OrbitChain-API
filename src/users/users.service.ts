@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -92,7 +92,7 @@ export class UsersService {
         displayName: updateDto.displayName ?? user.displayName,
         bio: updateDto.bio ?? user.bio,
         avatarUrl: updateDto.avatarUrl ?? user.avatarUrl,
-        socialLinks: (updateDto.socialLinks ?? user.socialLinks) as any,
+        socialLinks: (updateDto.socialLinks ?? user.socialLinks) as Prisma.InputJsonValue,
       },
       include: {
         campaigns: {
@@ -412,7 +412,7 @@ export class UsersService {
 
     for (const donation of donations) {
       const row = [
-        `"${((donation as any).campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
+        `"${((donation as unknown as { campaign?: { title?: string } }).campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
         donation.amount.toString(),
         donation.assetCode,
         donation.donatedAt.toISOString().split('T')[0],
@@ -498,8 +498,8 @@ export class UsersService {
     // Upsert the preference record
     const prefs = await this.prisma.notificationPreference.upsert({
       where: { userId },
-      update: { preferences: merged as any },
-      create: { userId, preferences: merged as any },
+      update: { preferences: merged as Prisma.InputJsonValue },
+      create: { userId, preferences: merged as Prisma.InputJsonValue },
     });
 
     return prefs.preferences as unknown as NotificationPreferencesDto;
@@ -536,3 +536,4 @@ export class UsersService {
     return { status: state };
   }
 }
+

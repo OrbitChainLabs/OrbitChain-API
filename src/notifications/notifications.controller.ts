@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Patch,
@@ -8,45 +8,38 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  /**
-   * GET /notifications — Returns the last 50 notifications.
-   * Optionally filter by ?isRead=true|false
-   */
-  /** GET /notifications — Returns up to 50 notifications, optionally filtered by read status */
+  /** GET /notifications - Returns up to 50 notifications, optionally filtered by read status */
   @Get()
   async getNotifications(
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
     @Query('isRead') isRead?: string,
   ) {
-    const userId = req.user?.sub as string;
     const isReadFilter =
       isRead === 'true' ? true : isRead === 'false' ? false : undefined;
-    return this.notificationsService.getNotifications(userId, isReadFilter);
+    return this.notificationsService.getNotifications(req.user.sub, isReadFilter);
   }
 
-  /** PATCH /notifications/mark-read — Mark all notifications as read */
+  /** PATCH /notifications/mark-read - Mark all notifications as read */
   @Patch('mark-read')
-  async markAllRead(@Req() req: Request & { user: any }) {
-    const userId = req.user?.sub as string;
-    return this.notificationsService.markAllRead(userId);
+  async markAllRead(@Req() req: AuthRequest) {
+    return this.notificationsService.markAllRead(req.user.sub);
   }
 
-  /** PATCH /notifications/:id/mark-read — Mark a single notification as read */
+  /** PATCH /notifications/:id/mark-read - Mark a single notification as read */
   @Patch(':id/mark-read')
   async markOneRead(
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const userId = req.user?.sub as string;
-    return this.notificationsService.markOneRead(userId, id);
+    return this.notificationsService.markOneRead(req.user.sub, id);
   }
 }

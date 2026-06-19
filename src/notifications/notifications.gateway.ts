@@ -1,4 +1,4 @@
-import {
+﻿import {
   WebSocketGateway,
   WebSocketServer,
   OnGatewayConnection,
@@ -9,6 +9,11 @@ import { Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Server, Socket } from 'socket.io';
+
+/** Socket extended with the authenticated userId stored on connection */
+interface AuthenticatedSocket extends Socket {
+  userId?: string;
+}
 
 /**
  * WebSocket gateway providing real-time notification events.
@@ -22,8 +27,8 @@ import type { Server, Socket } from 'socket.io';
  * keyed by their userId, so events can be emitted to specific users.
  *
  * Emitted events:
- *   - `notification`    – a new in-app notification for the user
- *   - `donation_received` – a real-time donation alert for campaign creators
+ *   - `notification`    â€“ a new in-app notification for the user
+ *   - `donation_received` â€“ a real-time donation alert for campaign creators
  */
 /** WebSocket gateway for real-time notification delivery to authenticated clients */
 @WebSocketGateway({
@@ -56,7 +61,7 @@ export class NotificationsGateway
    * Verify the JWT token on connection. Throws UnauthorizedException to
    * disconnect the client if the token is missing or invalid.
    */
-  async handleConnection(client: Socket): Promise<void> {
+  async handleConnection(client: AuthenticatedSocket): Promise<void> {
     try {
       const token =
         client.handshake.auth?.token ?? client.handshake.query?.token;
@@ -80,7 +85,7 @@ export class NotificationsGateway
       // Subscribe the socket to a private room keyed by userId
       client.join(`user:${userId}`);
       // Store userId on the socket for disconnect handling
-      (client as any).userId = userId;
+      client.userId = userId;
 
       this.logger.log(
         `WebSocket client connected: user=${userId} socket=${client.id}`,
@@ -93,8 +98,8 @@ export class NotificationsGateway
     }
   }
 
-  handleDisconnect(client: Socket): void {
-    const userId = (client as any).userId ?? 'unknown';
+  handleDisconnect(client: AuthenticatedSocket): void {
+    const userId = client.userId ?? 'unknown';
     this.logger.log(
       `WebSocket client disconnected: user=${userId} socket=${client.id}`,
     );
@@ -127,3 +132,5 @@ export class NotificationsGateway
     this.server.to(`user:${userId}`).emit('donation_received', data);
   }
 }
+
+

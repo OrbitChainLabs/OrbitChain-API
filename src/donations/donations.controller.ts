@@ -1,3 +1,4 @@
+﻿import type { AuthRequest } from '../common/types/auth-request.interface';
 import {
   Controller,
   Post,
@@ -15,7 +16,6 @@ import {
   DonationResponseDto,
   PlatformTipResponseDto,
 } from './dto/donation.dto';
-import { Request as ExpressRequest } from 'express';
 
 @Controller('donations')
 export class DonationsController {
@@ -24,7 +24,7 @@ export class DonationsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
     @Body() dto: CreateDonationDto,
   ) {
     const walletAddress = String(req.user?.walletAddress ?? '');
@@ -33,7 +33,7 @@ export class DonationsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMyDonations(@Request() req: ExpressRequest & { user: any }) {
+  async getMyDonations(@Request() req: AuthRequest) {
     const userId = req.user?.sub as string;
     return this.donationsService.findAll(userId);
   }
@@ -42,7 +42,7 @@ export class DonationsController {
   @Get(':id')
   async getDonation(
     @Param('id') id: string,
-    @Request() req: ExpressRequest & { user: any },
+    @Request() req: AuthRequest,
   ) {
     const userId = req.user?.sub as string;
     return this.donationsService.findById(id, userId);
@@ -69,3 +69,6 @@ export class DonationsController {
     };
   }
 }
+
+
+

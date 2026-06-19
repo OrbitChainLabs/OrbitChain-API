@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Controller,
   Delete,
@@ -22,7 +22,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
-import { Request } from 'express';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../users/guards/admin.guard';
 import { BrowseCampaignsQueryDto, BrowseCampaignsResponseDto } from './dto/browse-campaigns.dto';
@@ -56,24 +56,24 @@ export class CampaignsController {
     return this.campaignsService.getCampaignStats(id);
   }
 
-  /** POST /campaigns — Create a new fundraising campaign */
+  /** POST /campaigns â€” Create a new fundraising campaign */
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(
     @Body() body: CreateCampaignDto,
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
   ) {
     const userId = req.user?.sub as string;
     return this.campaignsService.createCampaign(userId, body);
   }
 
-  /** PATCH /campaigns/:id — Update campaign metadata (protected fields excluded) */
+  /** PATCH /campaigns/:id â€” Update campaign metadata (protected fields excluded) */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @Body() body: UpdateCampaignDto,
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
   ) {
     const sentKeys = Object.keys(body || {});
     const illegal = sentKeys.filter((k) => FORBIDDEN_FIELDS.includes(k));
@@ -83,7 +83,7 @@ export class CampaignsController {
       );
     }
 
-    return this.campaignsService.updateCampaign(req.user.id, id, body);
+    return this.campaignsService.updateCampaign(req.user.sub, id, body);
   }
 
   @Get()
@@ -144,7 +144,7 @@ export class CampaignsController {
   async createUpdate(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: CreateUpdateDto,
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
   ) {
     const userId = req.user?.sub as string;
     return this.campaignsService.createUpdate(id, userId, body);
@@ -160,7 +160,7 @@ export class CampaignsController {
   async deleteUpdate(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('updateId', ParseUUIDPipe) updateId: string,
-    @Req() req: Request & { user: any },
+    @Req() req: AuthRequest,
   ): Promise<void> {
     const userId = req.user?.sub as string;
     const isAdmin = req.user?.role === 'ADMIN';
@@ -169,7 +169,7 @@ export class CampaignsController {
 
   /**
    * GET /campaigns/:id/updates
-   * Public endpoint – returns paginated campaign updates sorted by createdAt DESC
+   * Public endpoint â€“ returns paginated campaign updates sorted by createdAt DESC
    */
   @Get(':id/updates')
   async getCampaignUpdates(
@@ -200,3 +200,6 @@ export class AdminCampaignsController {
     return this.campaignsService.featureCampaign(id);
   }
 }
+
+
+

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Patch,
@@ -20,43 +20,42 @@ import {
 } from './dto/notification-preferences.dto';
 import {
   GetUserDonationsQueryDto,
-  GetUserDonationsResponseDto,
   ExportDonationHistoryQueryDto,
 } from './dto/get-user-donations.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /** GET /users/me — Retrieve authenticated user's full profile */
+  /** GET /users/me - Retrieve authenticated user's full profile */
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMyProfile(@Request() req: any): Promise<UserProfileDto> {
+  async getMyProfile(@Request() req: AuthRequest): Promise<UserProfileDto> {
     return this.usersService.getMyProfile(req.user.walletAddress);
   }
 
-  /** PATCH /users/me — Update authenticated user's profile */
+  /** PATCH /users/me - Update authenticated user's profile */
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   async updateMyProfile(
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Body() updateDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     return this.usersService.updateMyProfile(req.user.walletAddress, updateDto);
   }
 
-  /** GET /users/me/donations — Retrieve donation history with filters */
+  /** GET /users/me/donations - Retrieve donation history with filters */
   @UseGuards(JwtAuthGuard)
   @Get('me/donations')
   async getMyDonations(
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Query() query: GetUserDonationsQueryDto,
-  ): Promise<any> {
-    const userId = req.user?.sub as string;
+  ) {
     return this.usersService.getUserDonationHistory(
-      userId,
+      req.user.sub,
       query.page,
       query.limit,
       query.sortBy,
@@ -69,27 +68,23 @@ export class UsersController {
 
   /**
    * GET /users/me/donations/export
-   * Export user's donation history as CSV.
-   * Small exports (<= 500 rows) are returned inline.
-   * Large exports are queued via Bull; a jobId is returned for polling.
+   * Small exports (<= 500 rows) returned inline; large exports queued via Bull.
    */
   @UseGuards(JwtAuthGuard)
   @Get('me/donations/export')
   async exportMyDonations(
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Query() query: ExportDonationHistoryQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const userId = req.user?.sub as string;
     const result = await this.usersService.exportUserDonationsAsCSV(
-      userId,
+      req.user.sub,
       query.campaignId,
       query.startDate,
       query.endDate,
     );
 
     if (result.queued) {
-      // Large export — return 202 Accepted with jobId for polling
       res.status(202).json({
         message: 'Export queued. Poll the status endpoint for completion.',
         jobId: result.jobId,
@@ -98,19 +93,14 @@ export class UsersController {
       return;
     }
 
-    // Small export — return CSV inline
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="donations.csv"',
-    );
+    res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
     res.status(200).send(result.csv);
   }
 
   /**
    * GET /users/me/donations/export/:jobId/status
-   * Poll the status of a queued export job.
-   * Returns the CSV when the job is complete.
+   * Poll status of a queued export job.
    */
   @UseGuards(JwtAuthGuard)
   @Get('me/donations/export/:jobId/status')
@@ -122,10 +112,7 @@ export class UsersController {
 
     if (result.status === 'completed' && result.csv) {
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        'attachment; filename="donations.csv"',
-      );
+      res.setHeader('Content-Disposition', 'attachment; filename="donations.csv"');
       res.status(200).send(result.csv);
       return;
     }
@@ -133,29 +120,26 @@ export class UsersController {
     res.status(200).json({ status: result.status, rowCount: result.rowCount });
   }
 
-  /** GET /users/me/notification-preferences — Retrieve preferences */
+  /** GET /users/me/notification-preferences - Retrieve preferences */
   @UseGuards(JwtAuthGuard)
   @Get('me/notification-preferences')
   async getNotificationPreferences(
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ): Promise<NotificationPreferencesDto> {
     return this.usersService.getNotificationPreferences(req.user.sub);
   }
 
-  /** PATCH /users/me/notification-preferences — Update preferences */
+  /** PATCH /users/me/notification-preferences - Update preferences */
   @UseGuards(JwtAuthGuard)
   @Patch('me/notification-preferences')
   async updateNotificationPreferences(
-    @Request() req: any,
+    @Request() req: AuthRequest,
     @Body() updateDto: UpdateNotificationPreferencesDto,
   ): Promise<NotificationPreferencesDto> {
-    return this.usersService.updateNotificationPreferences(
-      req.user.sub,
-      updateDto,
-    );
+    return this.usersService.updateNotificationPreferences(req.user.sub, updateDto);
   }
 
-  /** GET /users/:walletAddress — Retrieve public user profile */
+  /** GET /users/:walletAddress - Retrieve public user profile */
   @Get(':walletAddress')
   async getPublicProfile(
     @Param('walletAddress') walletAddress: string,
@@ -177,7 +161,7 @@ export class AdminUsersController {
   async updateKYCStatus(
     @Param('id') userId: string,
     @Body() updateDto: UpdateKYCStatusDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ): Promise<{ success: boolean; message: string }> {
     return this.usersService.updateKYCStatus(
       userId,

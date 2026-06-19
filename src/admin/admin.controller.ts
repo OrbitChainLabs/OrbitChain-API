@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Param,
@@ -12,6 +12,7 @@ import { SuspendCampaignDto } from './dtos/suspend-campaign.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,13 +20,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  /** POST /admin/campaigns/:id/suspend — Suspend a campaign (admin only) */
+  /** POST /admin/campaigns/:id/suspend - Suspend a campaign (admin only) */
   @Post('campaigns/:id/suspend')
   async suspendCampaign(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SuspendCampaignDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ): Promise<{ message: string }> {
-    return this.adminService.suspendCampaign(id, dto, req.user.sub, req.user.email);
+    return this.adminService.suspendCampaign(id, dto, req.user.sub, req.user.walletAddress);
   }
 }

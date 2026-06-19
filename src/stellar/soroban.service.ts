@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   rpc,
@@ -161,7 +161,7 @@ export class SorobanService {
       const response = await this.server.sendTransaction(finalTx);
 
       if (response.status === 'ERROR') {
-        throw this.parseTxResultError((response as any).errorResultXdr || (response as any).errorResult);
+        throw this.parseTxResultError(((response as { errorResultXdr?: string; errorResult?: string }).errorResultXdr ?? (response as { errorResultXdr?: string; errorResult?: string }).errorResult) ?? '');
       }
 
       const txResult = await this.pollTransaction(response.hash);
@@ -180,7 +180,7 @@ export class SorobanService {
             const innerSwitch = invokeHostFuncResult.switch().name;
             if (innerSwitch === 'invokeHostFunctionSuccess') {
               const scValResult = invokeHostFuncResult.success();
-              return scValToNative(scValResult as any);
+              return scValToNative(scValResult as unknown as xdr.ScVal);
             }
           }
         }
@@ -273,3 +273,7 @@ export class SorobanService {
     }
   }
 }
+
+
+
+

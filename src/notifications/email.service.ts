@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
@@ -102,8 +102,8 @@ export class EmailService {
       );
 
       // In dev mode with jsonTransport, log the message content
-      if (info.messageId && (info as any).message) {
-        this.logger.debug(`Email body preview: ${(info as any).message}`);
+      if (info.messageId && (info as { message?: string }).message) {
+        this.logger.debug(`Email body preview: ${(info as { message?: string }).message}`);
       }
     } catch (error) {
       this.logger.error(
@@ -113,3 +113,4 @@ export class EmailService {
     }
   }
 }
+
