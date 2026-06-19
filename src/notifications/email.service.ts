@@ -121,12 +121,18 @@ export class EmailService {
         `Email sent to ${this.maskEmail(options.to)}: ${options.subject} (id=${info.messageId})`,
       );
 
+
       // Dev-only, explicit opt-in preview. Never logs the HTML body, and
       // never runs in production regardless of how EMAIL_PREVIEW is set.
       if (this.emailPreviewEnabled && info.messageId) {
         this.logger.debug(
           `Email preview (subject/recipient only): subject="${options.subject}" to=${this.maskEmail(options.to)}`,
         );
+
+      // In dev mode with jsonTransport, log the message content
+      if (info.messageId && info.message) {
+        this.logger.debug(`Email body preview: ${info.message}`);
+
       }
     } catch (error) {
       this.logger.error(

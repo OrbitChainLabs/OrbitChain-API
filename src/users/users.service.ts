@@ -319,7 +319,8 @@ export class UsersService {
       _count: true,
     });
 
-    const totalDonated: string = totalDonatedResult._sum?.amount?.toString() || '0';
+    const totalDonated: string =
+      totalDonatedResult._sum?.amount?.toString() || '0';
     const totalDonations: number = totalDonatedResult._count ?? 0;
     const averageDonation =
       totalDonations > 0
@@ -406,7 +407,7 @@ export class UsersService {
       'Asset',
       'Date',
       'Tx Hash',
-      'USD Equivalent',
+      'USD Equivalent (pending)',
     ];
     const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
 
@@ -417,7 +418,7 @@ export class UsersService {
         donation.assetCode,
         donation.donatedAt.toISOString().split('T')[0],
         `"${donation.txHash || ''}"`,
-        '0.00', // USD equivalent: fetched from price cache in production
+        'N/A', // Price oracle not yet integrated
       ];
       rows.push(row.join(','));
     }
