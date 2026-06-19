@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -14,49 +14,42 @@ import {
   FundReleaseResponseDto,
 } from '../campaigns/dto/request-fund-release.dto';
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('campaigns/:campaignId/milestones')
 export class MilestonesController {
   constructor(private readonly milestonesService: MilestonesService) {}
 
-  /**
-   * POST /campaigns/:campaignId/milestones/:milestoneId/release
-   * Request fund release for an unlocked milestone (canonical path).
-   */
+  /** POST .../:milestoneId/release - Request fund release (canonical path) */
   @UseGuards(JwtAuthGuard)
   @Post(':milestoneId/release')
   async requestFundReleaseAlias(
     @Param('campaignId') campaignId: string,
     @Param('milestoneId') milestoneId: string,
     @Body() dto: RequestFundReleaseDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ): Promise<FundReleaseResponseDto> {
-    const creatorId = req.user?.sub as string;
     return this.milestonesService.requestFundRelease(
       campaignId,
       milestoneId,
-      creatorId,
+      req.user.sub,
       dto,
     );
   }
 
-  /**
-   * POST /campaigns/:campaignId/milestones/:milestoneId/fund-releases
-   * Request fund release for an unlocked milestone (legacy compat path).
-   */
+  /** POST .../:milestoneId/fund-releases - Request fund release (legacy path) */
   @UseGuards(JwtAuthGuard)
   @Post(':milestoneId/fund-releases')
   async requestFundRelease(
     @Param('campaignId') campaignId: string,
     @Param('milestoneId') milestoneId: string,
     @Body() dto: RequestFundReleaseDto,
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ): Promise<FundReleaseResponseDto> {
-    const creatorId = req.user?.sub as string;
     return this.milestonesService.requestFundRelease(
       campaignId,
       milestoneId,
-      creatorId,
+      req.user.sub,
       dto,
     );
   }
@@ -67,23 +60,18 @@ export class MilestonesController {
     @Param('campaignId') campaignId: string,
     @Param('milestoneId') milestoneId: string,
     @Param('releaseId') releaseId: string,
-    @Request() req?: any,
+    @Request() req?: Partial<AuthRequest>,
   ) {
-    const userId = req?.user?.sub;
-    return this.milestonesService.getFundReleaseById(releaseId, userId);
+    return this.milestonesService.getFundReleaseById(releaseId, req?.user?.sub);
   }
 
   /** List all fund releases for a campaign, optionally scoped to creator */
   @Get('fund-releases')
   async getCampaignFundReleases(
     @Param('campaignId') campaignId: string,
-    @Request() req?: any,
+    @Request() req?: Partial<AuthRequest>,
   ) {
-    const creatorId = req?.user?.sub;
-    return this.milestonesService.getCampaignFundReleases(
-      campaignId,
-      creatorId,
-    );
+    return this.milestonesService.getCampaignFundReleases(campaignId, req?.user?.sub);
   }
 
   /** Aggregate fund release stats grouped by status for a campaign */
@@ -99,9 +87,8 @@ export class MilestonesController {
     @Param('campaignId') campaignId: string,
     @Param('milestoneId') milestoneId: string,
     @Param('releaseId') releaseId: string,
-    @Request() req: any,
+    @Request() req: AuthRequest,
   ) {
-    const userId = req.user?.sub as string;
-    return this.milestonesService.cancelFundRelease(releaseId, userId);
+    return this.milestonesService.cancelFundRelease(releaseId, req.user.sub);
   }
 }

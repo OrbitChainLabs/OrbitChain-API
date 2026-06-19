@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -36,7 +36,7 @@ export class CampaignsService {
     const milestoneCreates = (dto.milestones || []).map((m) => ({
       title: m.title,
       description: m.description ?? null,
-      targetAmount: (m.targetAmount ?? 0) as any,
+      targetAmount: Number(m.targetAmount ?? 0),
       dueDate: m.dueDate ? new Date(m.dueDate) : undefined,
     }));
 
@@ -125,7 +125,7 @@ export class CampaignsService {
     }
 
     if (status) {
-      where.status = status as any;
+      where.status = status as Prisma.EnumCampaignStatusFilter;
     }
 
     let orderBy: Prisma.CampaignOrderByWithRelationInput;
@@ -440,7 +440,7 @@ export class CampaignsService {
     });
 
     const byId = new Map(campaigns.map((c) => [c.id, c]));
-    const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as any[];
+    const ordered = ids.map((id) => byId.get(id)).filter((item): item is NonNullable<typeof item> => item !== undefined);
 
     return { data: ordered, total, page, limit };
   }
@@ -518,3 +518,5 @@ function sqlCampaignFilters(input: { category?: string; status?: string }) {
 
   return { whereSql };
 }
+
+
