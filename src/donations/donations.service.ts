@@ -15,6 +15,7 @@ import {
   DonationResponseDto,
   PlatformTipResponseDto,
 } from './dto/donation.dto';
+import { buildDonationCsv } from '../common/csv-export.helper';
 
 @Injectable()
 export class DonationsService {
@@ -287,28 +288,29 @@ export class DonationsService {
     });
     if (!campaign) throw new NotFoundException('Campaign not found');
 
-    const skip = (page - 1) * limit;      const total = await this.prisma.donation.count({
-        where: { campaignId, status: 'CONFIRMED' },
-      });
+    const skip = (page - 1) * limit;
+    const total = await this.prisma.donation.count({
+      where: { campaignId, status: 'CONFIRMED' },
+    });
 
-      const donations = await this.prisma.donation.findMany({
-        where: { campaignId, status: 'CONFIRMED' },
-        include: { donor: { select: { walletAddress: true } } },
-        orderBy: { [sortBy]: order },
-        skip,
-        take: limit,
-      });
+    const donations = await this.prisma.donation.findMany({
+      where: { campaignId, status: 'CONFIRMED' },
+      include: { donor: { select: { walletAddress: true } } },
+      orderBy: { [sortBy]: order },
+      skip,
+      take: limit,
+    });
 
-      const donationsWithRank = donations.map((donation, index) => ({
-        rank: skip + index + 1,
-        walletAddress: donation.isAnonymous
-          ? 'Anonymous'
-          : (donation.donor?.walletAddress ?? 'Anonymous'),
-        amount: donation.amount.toString(),
-        assetCode: donation.assetCode,
-        createdAt: donation.createdAt,
-        txHash: donation.txHash,
-      }));
+    const donationsWithRank = donations.map((donation, index) => ({
+      rank: skip + index + 1,
+      walletAddress: donation.isAnonymous
+        ? 'Anonymous'
+        : (donation.donor?.walletAddress ?? 'Anonymous'),
+      amount: donation.amount.toString(),
+      assetCode: donation.assetCode,
+      createdAt: donation.createdAt,
+      txHash: donation.txHash,
+    }));
 
     return {
       donations: donationsWithRank,
@@ -412,29 +414,15 @@ export class DonationsService {
       orderBy: { donatedAt: 'desc' },
     });
 
-    const headers = [
-      'Campaign',
-      'Amount',
-      'Asset',
-      'Date',
-      'Tx Hash',
-      'USD Equivalent (pending)',
-    ];
-    const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
-
-    for (const donation of donations) {
-      const row = [
-        `"${(donation.campaign?.title || 'Unknown').replace(/"/g, '""')}"`,
-        donation.amount.toString(),
-        donation.assetCode,
-        donation.donatedAt.toISOString().split('T')[0],
-        `"${donation.txHash || ''}"`,
-        'N/A', // Price oracle not yet integrated
-      ];
-      rows.push(row.join(','));
-    }
-
-    return rows.join('\n');
+    return buildDonationCsv(
+      donations.map((d) => ({
+        campaignTitle: d.campaign?.title || 'Unknown',
+        amount: d.amount.toString(),
+        assetCode: d.assetCode,
+        donatedAt: d.donatedAt,
+        txHash: d.txHash,
+      })),
+    );
   }
 
   /** Get or create a user record by Stellar wallet address */
