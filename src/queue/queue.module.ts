@@ -7,12 +7,17 @@ import {
   QUEUE_ANALYTICS,
   QUEUE_EXPORT,
 } from './queue.constants';
+import { ScheduleModule } from '@nestjs/schedule';
+import { PrismaModule } from '../prisma/prisma.module';
+import { QueueMaintenanceService } from './queue-maintenance.service';
 
 const DEAD_LETTER_SETTINGS = {
   attempts: 3,
   backoff: { type: 'exponential', delay: 5000 },
   removeOnComplete: true,
-  removeOnFail: false,
+  // Keep a bounded number of failure records per queue so Redis doesn't grow forever.
+  // Retain the most recent 1000 failed jobs for inspection.
+  removeOnFail: 1000,
 };
 
 /** Registers Bull queues with dead-letter settings: email, contract-events, analytics, export */
@@ -31,7 +36,11 @@ const DEAD_LETTER_SETTINGS = {
       { name: QUEUE_ANALYTICS, defaultJobOptions: DEAD_LETTER_SETTINGS },
       { name: QUEUE_EXPORT, defaultJobOptions: DEAD_LETTER_SETTINGS },
     ),
+    // ScheduleModule used for daily maintenance cron
+    ScheduleModule.forRoot(),
+    PrismaModule,
   ],
+  providers: [QueueMaintenanceService],
   exports: [BullModule],
 })
 export class QueueModule {}

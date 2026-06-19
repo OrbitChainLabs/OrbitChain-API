@@ -418,7 +418,7 @@ export class DonationsService {
       'Asset',
       'Date',
       'Tx Hash',
-      'USD Equivalent',
+      'USD Equivalent (pending)',
     ];
     const rows: string[] = [headers.map((h) => `"${h}"`).join(',')];
 
@@ -429,7 +429,7 @@ export class DonationsService {
         donation.assetCode,
         donation.donatedAt.toISOString().split('T')[0],
         `"${donation.txHash || ''}"`,
-        '0.00',
+        'N/A', // Price oracle not yet integrated
       ];
       rows.push(row.join(','));
     }
