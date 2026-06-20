@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { maskEmail } from './email.utils';
 
 export interface EmailTemplate {
   subject: string;
@@ -88,18 +89,6 @@ export class EmailService {
   }
 
   /**
-   * Masks an email address for safe logging, e.g. "jo***@example.com".
-   * Keeps enough of the local part to be useful for debugging without
-   * exposing the full address in log aggregators.
-   */
-  private maskEmail(email: string): string {
-    const [local, domain] = email.split('@');
-    if (!domain) return '***';
-    const visible = local.slice(0, 2);
-    return `${visible}${'*'.repeat(Math.max(local.length - visible.length, 1))}@${domain}`;
-  }
-
-  /**
    * Send an email. In development mode without SMTP, logs the email to console.
    */
   async send(options: SendEmailOptions): Promise<void> {
@@ -118,7 +107,7 @@ export class EmailService {
     try {
       const info = await transporter.sendMail(mailOptions);
       this.logger.log(
-        `Email sent to ${this.maskEmail(options.to)}: ${options.subject} (id=${info.messageId})`,
+        `Email sent to ${maskEmail(options.to)}: ${options.subject} (id=${info.messageId})`,
       );
 
 
@@ -126,7 +115,7 @@ export class EmailService {
       // never runs in production regardless of how EMAIL_PREVIEW is set.
       if (this.emailPreviewEnabled && info.messageId) {
         this.logger.debug(
-          `Email preview (subject/recipient only): subject="${options.subject}" to=${this.maskEmail(options.to)}`,
+          `Email preview (subject/recipient only): subject="${options.subject}" to=${maskEmail(options.to)}`,
         );
 
       // In dev mode with jsonTransport, log the message content
@@ -136,7 +125,7 @@ export class EmailService {
       }
     } catch (error) {
       this.logger.error(
-        `Failed to send email to ${this.maskEmail(options.to)}: ${(error as Error).message}`,
+        `Failed to send email to ${maskEmail(options.to)}: ${(error as Error).message}`,
       );
       throw error;
     }
