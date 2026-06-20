@@ -117,11 +117,11 @@ export class EmailService {
         this.logger.debug(
           `Email preview (subject/recipient only): subject="${options.subject}" to=${maskEmail(options.to)}`,
         );
+      }
 
       // In dev mode with jsonTransport, log the message content
       if (info.messageId && info.message) {
         this.logger.debug(`Email body preview: ${info.message}`);
-
       }
     } catch (error) {
       this.logger.error(
