@@ -15,7 +15,7 @@ import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import type { CreateUpdateDto } from './dto/create-update.dto';
 import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
-
+import { AcceptedAssetInput } from './dto/accepted-asset-input.dto';
 const MIN_MILESTONE_TARGET_AMOUNT = 0.0000001;
 
 @Injectable()
@@ -495,24 +495,47 @@ function campaignBrowseSelect() {
   } satisfies Prisma.CampaignSelect;
 }
 
-function parseAcceptedAssets(values?: string[]) {
+export function parseAcceptedAssets(values?: AcceptedAssetInput[]) {
   if (!values || values.length === 0) return [];
 
-  return values
-    .map((v) => String(v).trim())
-    .filter(Boolean)
-    .map((v) => {
-      if (v.toUpperCase() === 'XLM') {
-        return { assetType: 'native' as const };
-      }
-      const [code, issuer] = v.split(':');
-      if (!code || !issuer) return null;
-      return { assetType: 'credit' as const, code, issuer };
-    })
-    .filter(Boolean) as Array<
-    | { assetType: 'native' }
-    | { assetType: 'credit'; code: string; issuer: string }
-  >;
+  if (values.length > 10) {
+    throw new BadRequestException('acceptedAssets cannot exceed 10 entries');
+  }
+
+  return values.map((item) => {
+    const v = item.value.trim();
+
+    if (!v) {
+      throw new BadRequestException('Asset value cannot be empty');
+    }
+
+    if (v.toUpperCase() === 'XLM') {
+      return { assetType: 'native' as const };
+    }
+
+    const parts = v.split(':');
+    if (parts.length !== 2) {
+      throw new BadRequestException(
+        'Invalid asset format. Expected "XLM" or "CODE:ISSUER"',
+      );
+    }
+
+    const [code, issuer] = parts;
+
+    if (!code || !code.trim()) {
+      throw new BadRequestException('Asset code cannot be empty');
+    }
+
+    if (!issuer || !issuer.trim()) {
+      throw new BadRequestException('Asset issuer cannot be empty');
+    }
+
+    return {
+      assetType: 'credit' as const,
+      code: code.trim(),
+      issuer: issuer.trim(),
+    };
+  });
 }
 
 function sqlCampaignFilters(input: { category?: string; status?: string }) {
