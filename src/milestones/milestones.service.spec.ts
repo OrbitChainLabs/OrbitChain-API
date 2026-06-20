@@ -191,8 +191,16 @@ describe('MilestonesService', () => {
   describe('getCampaignFundReleaseStats', () => {
     it('aggregates counts and sums grouped by status', async () => {
       prisma.fundRelease.groupBy.mockResolvedValueOnce([
-        { status: 'PENDING', _count: 2, _sum: { amount: { toString: () => '300' } } },
-        { status: 'RELEASED', _count: 1, _sum: { amount: { toString: () => '700' } } },
+        {
+          status: 'PENDING',
+          _count: 2,
+          _sum: { amount: { toString: () => '300' } },
+        },
+        {
+          status: 'RELEASED',
+          _count: 1,
+          _sum: { amount: { toString: () => '700' } },
+        },
       ]);
 
       const result = await service.getCampaignFundReleaseStats(CAMPAIGN_ID);
