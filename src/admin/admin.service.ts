@@ -20,7 +20,7 @@ export class AdminService {
     dto: SuspendCampaignDto,
     adminId: string,
     adminEmail: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; notificationSent: boolean }> {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
     });
@@ -55,14 +55,27 @@ export class AdminService {
       },
     });
 
-    // Notify creator
-    await this.notificationsService.sendCampaignSuspensionEmail({
-      toEmail: `creator-${campaign.creatorId}@platform.internal`,
-      campaignId,
-      campaignTitle: campaign.title,
-      reason: dto.reason,
-    });
+    // Notify creator - handle failures gracefully
+    let notificationSent = true;
+    try {
+      await this.notificationsService.sendCampaignSuspensionEmail({
+        creatorId: campaign.creatorId,
+        campaignId,
+        campaignTitle: campaign.title,
+        reason: dto.reason,
+      });
+    } catch (error) {
+      notificationSent = false;
+      // Log the error but don't throw - campaign is already suspended
+      console.error(
+        `Failed to send suspension notification for campaign ${campaignId}:`,
+        error,
+      );
+    }
 
-    return { message: `Campaign ${campaignId} has been suspended` };
+    return {
+      message: `Campaign ${campaignId} has been suspended`,
+      notificationSent,
+    };
   }
 }
