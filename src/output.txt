@@ -1,0 +1,90 @@
+C:\Users\USER\OneDrive\Desktop\Open Source Projects\OrbitChain-API\src
+├── admin
+|  ├── admin.controller.ts
+|  ├── admin.module.ts
+|  ├── admin.service.ts
+|  └── dtos
+├── api-keys
+|  ├── api-key.guard.ts
+|  ├── api-keys.controller.ts
+|  └── api-keys.module.ts
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+├── auth
+|  ├── auth-challenge.controller.ts
+|  ├── auth-logout.controller.ts
+|  ├── auth-verify.controller.ts
+|  ├── auth.module.ts
+|  ├── interfaces
+|  ├── jwt-auth.guard.ts
+|  └── jwt.strategy.ts
+├── campaigns
+|  ├── campaigns.controller.ts
+|  ├── campaigns.module.ts
+|  ├── campaigns.service.ts
+|  ├── dto
+|  └── interfaces
+├── common
+|  ├── decorators
+|  ├── guards
+|  └── sentry
+├── contracts
+|  ├── contracts.controller.ts
+|  ├── contracts.module.ts
+|  ├── contracts.service.ts
+|  └── dto
+├── donations
+|  ├── admin-tips.controller.ts
+|  ├── donations.controller.ts
+|  ├── donations.module.ts
+|  ├── donations.service.ts
+|  └── dto
+├── health
+|  ├── health.controller.ts
+|  ├── health.module.ts
+|  └── redis.health.ts
+├── main.ts
+├── milestones
+|  ├── milestones.controller.ts
+|  ├── milestones.module.ts
+|  └── milestones.service.ts
+├── notifications
+|  ├── email-templates.ts
+|  ├── email.processor.ts
+|  ├── email.service.ts
+|  ├── notifications.controller.ts
+|  ├── notifications.gateway.ts
+|  ├── notifications.module.ts
+|  └── notifications.service.ts
+├── platform
+|  ├── platform.controller.ts
+|  ├── platform.module.ts
+|  └── platform.service.ts
+├── prisma
+|  ├── prisma.module.ts
+|  └── prisma.service.ts
+├── queue
+|  ├── queue.constants.ts
+|  └── queue.module.ts
+├── redis
+|  └── redis.module.ts
+├── stellar
+|  ├── soroban.service.ts
+|  ├── stellar-event.service.ts
+|  ├── stellar-transactions.service.ts
+|  └── stellar.module.ts
+├── throttler
+|  ├── throttler-redis.storage.ts
+|  └── throttler.module.ts
+└── users
+   ├── dto
+   ├── export.processor.ts
+   ├── guards
+   ├── users.controller.ts
+   ├── users.module.ts
+   └── users.service.ts
+
+directory: 28 file: 58
+
