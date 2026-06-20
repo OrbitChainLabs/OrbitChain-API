@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { createHash } from 'crypto';
 import { CampaignsService } from './campaigns.service';
 import type { CampaignStats } from './interfaces/campaign-stats.interface';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -185,13 +186,29 @@ export class CampaignsController {
   }
 
   private generateCacheKey(query: BrowseCampaignsQueryDto): string {
-    const parts = ['campaigns'];
+    const normalized = {
+      category: query.category?.trim() ?? '',
+      status: query.status?.trim() ?? '',
+      search: query.search?.trim() ?? '',
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      sortBy: query.sortBy ?? 'newest',
+    };
 
-    if (query.category) parts.push(`category:${query.category}`);
-    if (query.status) parts.push(`status:${query.status}`);
-    if (query.search) parts.push(`search:${query.search}`);
+    const rawKey = [
+      `c=${encodeURIComponent(normalized.category)}`,
+      `s=${encodeURIComponent(normalized.status)}`,
+      `q=${encodeURIComponent(normalized.search)}`,
+      `p=${normalized.page}`,
+      `l=${normalized.limit}`,
+      `sort=${normalized.sortBy}`,
+    ].join('|');
 
-    return parts.join(':');
+    if (rawKey.length > 120) {
+      return `campaigns:${createHash('sha256').update(rawKey).digest('hex')}`;
+    }
+
+    return `campaigns:${rawKey}`;
   }
 }
 
