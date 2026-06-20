@@ -66,9 +66,11 @@ describe('parseAcceptedAssets', () => {
   });
 
   it('should throw on missing code (:ISSUER)', () => {
-    expect(() => parseAcceptedAssets([makeAsset(':GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5')])).toThrow(
-      BadRequestException,
-    );
+    expect(() =>
+      parseAcceptedAssets([
+        makeAsset(':GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'),
+      ]),
+    ).toThrow(BadRequestException);
   });
 
   it('should throw on missing colon separator (USDC only)', () => {
@@ -78,9 +80,9 @@ describe('parseAcceptedAssets', () => {
   });
 
   it('should throw on too many colons', () => {
-    expect(() =>
-      parseAcceptedAssets([makeAsset('USDC:GBBD47:extra')]),
-    ).toThrow(BadRequestException);
+    expect(() => parseAcceptedAssets([makeAsset('USDC:GBBD47:extra')])).toThrow(
+      BadRequestException,
+    );
   });
 
   it('should throw if array exceeds 10 entries', () => {

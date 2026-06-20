@@ -452,7 +452,11 @@ function parseMilestoneTargetAmount(targetAmount?: string) {
   const raw = targetAmount?.trim();
   const amount = raw ? Number(raw) : Number.NaN;
 
-  if (!raw || !Number.isFinite(amount) || amount < MIN_MILESTONE_TARGET_AMOUNT) {
+  if (
+    !raw ||
+    !Number.isFinite(amount) ||
+    amount < MIN_MILESTONE_TARGET_AMOUNT
+  ) {
     throw new BadRequestException(
       `milestone targetAmount is required and must be at least ${MIN_MILESTONE_TARGET_AMOUNT}`,
     );
