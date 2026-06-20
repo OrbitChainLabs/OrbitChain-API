@@ -10,6 +10,17 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Server, Socket } from 'socket.io';
 
+export function parseAllowedOrigins(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 /**
  * WebSocket gateway providing real-time notification events.
  *
@@ -29,8 +40,9 @@ import type { Server, Socket } from 'socket.io';
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {
-    origin: '*',
-    credentials: true,
+    // Socket.IO uses JWTs from the handshake auth payload, so credentialed CORS is unnecessary.
+    origin: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
+    credentials: false,
   },
 })
 export class NotificationsGateway
