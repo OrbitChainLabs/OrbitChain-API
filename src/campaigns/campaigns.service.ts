@@ -244,21 +244,27 @@ export class CampaignsService {
     };
   }
 
-  /** Recalculate a campaign's raisedAmount from confirmed donations */
+  /**
+   * Recalculate a campaign's raisedAmount from confirmed donations.
+   * Uses a Prisma $transaction to ensure the aggregate read and campaign
+   * update happen atomically.
+   */
   async recalculateCampaignStats(campaignId: string) {
-    const agg = await this.prisma.donation.aggregate({
-      where: {
-        campaignId,
-        status: 'CONFIRMED',
-      },
-      _sum: { amount: true },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      const agg = await tx.donation.aggregate({
+        where: {
+          campaignId,
+          status: 'CONFIRMED',
+        },
+        _sum: { amount: true },
+      });
 
-    const raisedAmount = agg._sum.amount ?? new Prisma.Decimal(0);
+      const raisedAmount = agg._sum.amount ?? new Prisma.Decimal(0);
 
-    await this.prisma.campaign.update({
-      where: { id: campaignId },
-      data: { raisedAmount },
+      await tx.campaign.update({
+        where: { id: campaignId },
+        data: { raisedAmount },
+      });
     });
   }
 
