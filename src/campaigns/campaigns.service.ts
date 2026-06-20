@@ -64,10 +64,16 @@ export class CampaignsService {
     });
   }
 
+  /**
+   * Update campaign metadata. Only the campaign creator or an admin may update.
+   * Enforces per-resource ownership to prevent IDOR (OWASP A01:2021) and writes
+   * an AuditLog row for every successful update.
+   */
   async updateCampaign(
     userId: string,
     campaignId: string,
     dto: UpdateCampaignDto,
+    isAdmin = false,
   ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
@@ -77,7 +83,11 @@ export class CampaignsService {
       throw new NotFoundException('Campaign not found');
     }
 
-    return this.prisma.campaign.update({
+    if (campaign.creatorId !== userId && !isAdmin) {
+      throw new ForbiddenException('Not authorized to update this campaign');
+    }
+
+    const updated = await this.prisma.campaign.update({
       where: { id: campaignId },
       data: {
         title: dto.title ?? campaign.title,
@@ -86,6 +96,26 @@ export class CampaignsService {
         imageUrl: dto.coverImageUrl ?? campaign.imageUrl,
       },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'CAMPAIGN_UPDATED',
+        resourceType: 'campaign',
+        resourceId: campaignId,
+        details: JSON.stringify({
+          isAdmin,
+          changes: {
+            title: dto.title,
+            description: dto.description,
+            story: dto.story,
+            coverImageUrl: dto.coverImageUrl,
+          },
+        }),
+      },
+    });
+
+    return updated;
   }
 
   /**
