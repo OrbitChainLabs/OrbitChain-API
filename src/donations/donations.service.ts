@@ -45,6 +45,44 @@ export class DonationsService {
       where: { txHash: dto.txHash },
     });
     if (existing) {
+      // Re-verify PENDING or FAILED donations if within idempotency window
+      if (existing.status === 'PENDING' || existing.status === 'FAILED') {
+        const idempotencyWindowMs = 30_000; // 30 seconds
+        const timeSinceCreation = Date.now() - existing.createdAt.getTime();
+
+        if (timeSinceCreation <= idempotencyWindowMs) {
+          const recovered = await this.retryVerifyDonation(existing, dto);
+          if (recovered) {
+            // Fetch the updated donation
+            const updated = await this.prisma.donation.findUnique({
+              where: { txHash: dto.txHash },
+            });
+            if (updated) {
+              return {
+                donation: {
+                  id: updated.id,
+                  amount: updated.amount.toString(),
+                  assetCode: updated.assetCode,
+                  txHash: updated.txHash,
+                  status: updated.status,
+                  donorId: updated.donorId,
+                  campaignId: updated.campaignId,
+                  tipAmount: updated.tipAmount?.toString() || null,
+                  tipAsset: updated.tipAsset || null,
+                  tipId: updated.tipId,
+                  donatedAt: updated.donatedAt,
+                  confirmedAt: updated.confirmedAt,
+                  createdAt: updated.createdAt,
+                  recovered: true,
+                },
+                tip: null,
+              };
+            }
+          }
+        }
+      }
+
+      // Return cached donation (not recovered or outside window)
       return {
         donation: {
           id: existing.id,
@@ -60,6 +98,7 @@ export class DonationsService {
           donatedAt: existing.donatedAt,
           confirmedAt: existing.confirmedAt,
           createdAt: existing.createdAt,
+          recovered: false,
         },
         tip: null,
       };
@@ -123,9 +162,62 @@ export class DonationsService {
         donatedAt: created.donatedAt,
         confirmedAt: created.confirmedAt,
         createdAt: created.createdAt,
+        recovered: false,
       },
       tip: null,
     };
+  }
+
+  /**
+   * Retry verification for PENDING or FAILED donations
+   * Re-checks the transaction on-chain and updates the status if successful
+   * @returns true if the donation was recovered (status changed to CONFIRMED)
+   */
+  private async retryVerifyDonation(
+    existing: any,
+    dto: CreateDonationDto,
+  ): Promise<boolean> {
+    try {
+      const campaign = await this.prisma.campaign.findUnique({
+        where: { id: dto.campaignId },
+      });
+
+      if (!campaign || !campaign.contractId) {
+        return false;
+      }
+
+      const requestedAsset = parseAsset(
+        dto.assetCode || 'XLM',
+        dto.assetIssuer,
+      );
+      const acceptedAssets = coerceAcceptedAssets(campaign.acceptedAssets);
+
+      // Re-verify the transaction on-chain
+      await this.stellarTxs.verifyDonationTransaction({
+        txHash: dto.txHash!,
+        destination: campaign.contractId,
+        amount: dto.amount,
+        asset: requestedAsset,
+        acceptedAssets,
+      });
+
+      // If verification succeeds, update the donation status
+      await this.prisma.donation.update({
+        where: { txHash: dto.txHash },
+        data: {
+          status: 'CONFIRMED',
+          confirmedAt: new Date(),
+        },
+      });
+
+      // Recalculate campaign stats since we confirmed a previously failed/pending donation
+      await this.campaigns.recalculateCampaignStats(campaign.id);
+
+      return true;
+    } catch (error) {
+      // Verification failed, keep existing status
+      return false;
+    }
   }
 
   /** Get all donations for a user ordered by most recent first */
