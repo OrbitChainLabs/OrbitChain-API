@@ -1,14 +1,11 @@
 import {
   Injectable,
-  Inject,
   OnApplicationBootstrap,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 import { Horizon, xdr, scValToNative, StrKey } from '@stellar/stellar-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUE_CONTRACT_EVENTS } from '../queue/queue.constants';
@@ -27,34 +24,39 @@ export class StellarEventService implements OnApplicationBootstrap {
   private lastCursor = 'now';
   private isConnecting = false;
   private active = true;
+  private readonly network: string;
 
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     @InjectQueue(QUEUE_CONTRACT_EVENTS)
     private readonly contractEventsQueue: Queue,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {
     this.horizonUrl =
       this.config.get<string>('STELLAR_HORIZON_URL') ||
       'https://horizon-testnet.stellar.org';
     this.horizonServer = new Horizon.Server(this.horizonUrl);
+    this.network =
+      this.config.get<string>('STELLAR_NETWORK') ||
+      (this.horizonUrl.includes('testnet') ? 'testnet' : 'mainnet');
   }
 
   async onApplicationBootstrap() {
     this.logger.log('Starting Stellar Event Listener Service...');
 
-    // Load last cursor from cache
-    const savedCursor = await this.cacheManager.get<string>(
-      'stellar:event_listener:cursor',
-    );
-    if (savedCursor) {
-      this.lastCursor = savedCursor;
+    // Load last cursor from Postgres (persistent, no TTL)
+    const row = await this.prisma.eventCursor.findUnique({
+      where: { network: this.network },
+    });
+    if (row) {
+      this.lastCursor = row.cursor;
       this.logger.log(
-        `Loaded last processed transaction cursor: ${this.lastCursor}`,
+        `Loaded last processed transaction cursor: ${this.lastCursor} (network: ${this.network})`,
       );
     } else {
-      this.logger.log('No saved cursor found. Starting from "now"');
+      this.logger.log(
+        `No saved cursor found for network "${this.network}". Starting from "now"`,
+      );
     }
 
     // Catch up on any missed events and start the stream
@@ -218,7 +220,11 @@ export class StellarEventService implements OnApplicationBootstrap {
 
   private async saveCursor(cursor: string) {
     this.lastCursor = cursor;
-    await this.cacheManager.set('stellar:event_listener:cursor', cursor);
+    await this.prisma.eventCursor.upsert({
+      where: { network: this.network },
+      create: { cursor, network: this.network },
+      update: { cursor },
+    });
   }
 
   private parseEvents(resultMetaXdr: string): any[] {

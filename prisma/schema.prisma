@@ -448,6 +448,30 @@ model SmartContract {
   @@map("contracts")
 }
 
+/// ProcessedEvent tracks completed contract-event queue jobs to provide
+/// idempotency guarantees and prevent duplicate donation/ milestone processing.
+model ProcessedEvent {
+  id        String   @id @default(uuid())
+  txHash    String
+  eventType String
+  processedAt DateTime @default(now())
+
+  @@unique([txHash, eventType])
+  @@map("processed_events")
+}
+
+/// EventCursor persists the Stellar event listener cursor across restarts,
+/// preventing cursor loss due to Redis TTL eviction.
+model EventCursor {
+  id        String   @id @default(uuid())
+  cursor    String
+  network   String
+  updatedAt DateTime @updatedAt
+
+  @@unique([network])
+  @@map("event_cursors")
+}
+
 /// DeadLetter model stores pruned failed Bull jobs for audit and analysis.
 model DeadLetter {
   id         String   @id @default(uuid())
