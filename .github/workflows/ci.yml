@@ -100,6 +100,14 @@ jobs:
         run: npm ci
 
       - name: Jest e2e
+        # E2e tests need environment variables for Prisma and other services
+        # Using placeholder values for CI - tests should mock external dependencies
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/orbitchain_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-for-ci
+          NODE_ENV: test
+          PORT: 3001
         run: npm run test:e2e
 
   prisma-validate:
