@@ -1,4 +1,9 @@
-import { Injectable, Inject, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  OnApplicationBootstrap,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
@@ -228,7 +233,9 @@ export class StellarEventService implements OnApplicationBootstrap {
               : null;
             const body = event.body();
             const v0 = body?.v0();
-            const topics = (v0?.topics() || []).map((t: any) => scValToNative(t));
+            const topics = (v0?.topics() || []).map((t: any) =>
+              scValToNative(t),
+            );
             const rawValue = v0?.data();
             const value = rawValue ? scValToNative(rawValue) : null;
 

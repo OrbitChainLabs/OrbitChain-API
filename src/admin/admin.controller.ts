@@ -28,7 +28,12 @@ export class AdminController {
     @Body() dto: SuspendCampaignDto,
     @Request() req: any,
   ): Promise<{ message: string }> {
-    return this.adminService.suspendCampaign(id, dto, req.user.sub, req.user.email);
+    return this.adminService.suspendCampaign(
+      id,
+      dto,
+      req.user.sub,
+      req.user.email,
+    );
   }
 
   /**
@@ -38,9 +43,7 @@ export class AdminController {
    */
   @Post('donations/:id/refund')
   @HttpCode(HttpStatus.OK)
-  async refundDonation(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<{
+  async refundDonation(@Param('id', ParseUUIDPipe) id: string): Promise<{
     id: string;
     amount: string;
     assetCode: string;

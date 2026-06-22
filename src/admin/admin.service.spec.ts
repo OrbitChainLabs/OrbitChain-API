@@ -131,7 +131,11 @@ describe('AdminService', () => {
       });
       expect(txMock.campaign.update).toHaveBeenCalledWith({
         where: { id: 'campaign-1' },
-        data: { raisedAmount: expect.objectContaining({ toString: expect.any(Function) }) },
+        data: {
+          raisedAmount: expect.objectContaining({
+            toString: expect.any(Function),
+          }),
+        },
       });
     });
 

@@ -21,7 +21,8 @@ export class QueueMaintenanceService implements OnModuleInit {
 
   constructor(
     @InjectQueue(QUEUE_EMAIL) private readonly emailQueue: Queue,
-    @InjectQueue(QUEUE_CONTRACT_EVENTS) private readonly contractEventsQueue: Queue,
+    @InjectQueue(QUEUE_CONTRACT_EVENTS)
+    private readonly contractEventsQueue: Queue,
     @InjectQueue(QUEUE_ANALYTICS) private readonly analyticsQueue: Queue,
     @InjectQueue(QUEUE_EXPORT) private readonly exportQueue: Queue,
     private readonly prisma: PrismaService,
@@ -57,7 +58,9 @@ export class QueueMaintenanceService implements OnModuleInit {
       try {
         await this.pruneFailedJobs(q, name);
       } catch (err) {
-        this.logger.error(`Maintenance failed for queue ${name}: ${String(err)}`);
+        this.logger.error(
+          `Maintenance failed for queue ${name}: ${String(err)}`,
+        );
         Sentry.captureException(err);
       }
     }
@@ -80,7 +83,9 @@ export class QueueMaintenanceService implements OnModuleInit {
         const failed = (counts && (counts as any).failed) || 0;
         this.deadLetterGauge.set({ queue: name }, failed as number);
       } catch (err) {
-        this.logger.warn(`Unable to update dead-letter metric for ${name}: ${String(err)}`);
+        this.logger.warn(
+          `Unable to update dead-letter metric for ${name}: ${String(err)}`,
+        );
       }
     }
   }
@@ -103,7 +108,10 @@ export class QueueMaintenanceService implements OnModuleInit {
                 queueName,
                 jobId: String(job.id),
                 payload: job.data as any,
-                errorMessage: (job.stacktrace && job.stacktrace.join('\n')) || job.failedReason || null,
+                errorMessage:
+                  (job.stacktrace && job.stacktrace.join('\n')) ||
+                  job.failedReason ||
+                  null,
                 failedAt: new Date(job.timestamp || Date.now()),
               },
             });
@@ -122,7 +130,9 @@ export class QueueMaintenanceService implements OnModuleInit {
           await job.remove();
         }
       } catch (err) {
-        this.logger.error(`Error pruning job ${job.id} from ${queueName}: ${String(err)}`);
+        this.logger.error(
+          `Error pruning job ${job.id} from ${queueName}: ${String(err)}`,
+        );
         Sentry.captureException(err);
       }
     }
