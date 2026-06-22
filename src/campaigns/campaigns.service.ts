@@ -14,9 +14,24 @@ import {
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import type { CreateUpdateDto } from './dto/create-update.dto';
-import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
+import {
+  ContractBalanceResponseDto,
+  PerAssetBalanceDto,
+} from './dto/contract-balance.dto';
 
 const MIN_MILESTONE_TARGET_AMOUNT = 0.0000001;
+const DISCREPANCY_TOLERANCE = new Prisma.Decimal('0.0001');
+
+function parseDecimalOrZero(raw: string | number | undefined | null): string {
+  const s = String(raw ?? '0').trim();
+  if (s === '') return '0';
+  const n = Number(s);
+  if (!Number.isFinite(n)) return '0';
+  // Horizon can return negative balances for accounts with buy-liabilities;
+  // floor them at zero rather than introducing a signed arithmetic that
+  // downstream `raisedAmount` storage cannot accept.
+  return n >= 0 ? s : '0';
+}
 
 @Injectable()
 export class CampaignsService {
@@ -199,10 +214,31 @@ export class CampaignsService {
   }
 
   /**
-   * Fetch on-chain contract balance from Stellar and compare with stored raisedAmount.
-   * Auto-corrects discrepancies.
+   * Fetch on-chain contract balance from Stellar and compute a deterministic
+   * comparison against the stored `Campaign.raisedAmount`.
+   *
+   * SAFETY: This method is READ-ONLY with respect to `Campaign.raisedAmount`.
+   * It computes two side-by-side figures:
+   *
+   *   * The on-chain account's per-asset balances (raw, in each asset's native
+   *     decimals), summed PER ASSET and never as a mixed-denomination aggregate.
+   *   * The total sum of APPROVED/RELEASED `FundRelease.amount` values, summed
+   *     PER ASSET (XLM releases attach to the `native` slot, issued-asset
+   *     releases attach to matching `code:issuer` slots).
+   *
+   * The on-chain amount that "should" still belong to the campaign is
+   * `grossOnChain + released` per asset, because released funds have already
+   * been moved off the contract account. Each asset's contribution to the
+   * canonical `Campaign.raisedAmount` is independent of the others.
+   *
+   * Discrepancies are REPORTED via `discrepancyDetected` only. The stored
+   * `Campaign.raisedAmount` is NEVER mutated by this method. Correcting a
+   * discrepancy requires an explicit admin invocation through
+   * `AdminService.reconcileCampaignBalance`, which writes an `AuditLog`.
    */
-  async getContractBalance(campaignId: string) {
+  async getContractBalance(
+    campaignId: string,
+  ): Promise<ContractBalanceResponseDto> {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
     });
@@ -219,33 +255,98 @@ export class CampaignsService {
       campaign.contractId,
     );
 
-    // Calculate total on-chain balance
-    let onChainTotal = 0;
-    for (const b of balances) {
-      onChainTotal += parseFloat(b.balance);
-    }
+    // The Prisma `FundRelease` schema does not record `assetCode` / `assetIssuer`,
+    // so per-asset release netting is unimplementable today without a schema
+    // migration. We treat the released sum as a single XLM-denominated bucket
+    // since `Campaign.raisedAmount` (and `Milestone.targetAmount`) are stored
+    // in XLM-equivalent units. The aggregate is reported on the XLM row of
+    // `perAsset` only; non-XLM asset rows show their on-chain balance without
+    // any released offset.
+    const totalReleased = await this.sumApprovedReleasedAmount(campaignId);
+    const releasedApplied = totalReleased.gt(0);
 
-    const storedRaisedAmount = parseFloat(campaign.raisedAmount.toString());
-    const discrepancyDetected =
-      Math.abs(onChainTotal - storedRaisedAmount) > 0.0001;
+    const perAsset: PerAssetBalanceDto[] = balances.map((b) => {
+      const gross = new Prisma.Decimal(parseDecimalOrZero(b.balance));
+      const isNative = b.isNative;
+      const released = isNative && releasedApplied ? totalReleased : new Prisma.Decimal(0);
+      const net = isNative ? gross.plus(released) : gross;
+      return {
+        assetCode: b.assetCode,
+        assetIssuer: b.assetIssuer,
+        isNative,
+        grossOnChain: gross.toString(),
+        released: released.toString(),
+        netAvailable: net.toString(),
+      };
+    });
 
-    // If discrepancy detected, update the stored raisedAmount
-    if (discrepancyDetected) {
-      await this.prisma.campaign.update({
-        where: { id: campaignId },
-        data: {
-          raisedAmount: onChainTotal,
-        },
-      });
-    }
+    // `netAvailableByAssetTotal` is the canonical XLM-denominated balance
+    // (the only denomination `Campaign.raisedAmount` is stored in). We
+    // deliberately sum ONLY native (XLM) per-asset nets so this figure is
+    // safe to compare against the stored value. Non-XLM assets remain
+    // visible in the `perAsset` array but are NEVER folded into the
+    // canonical total — folding them would re-create the mixed-
+    // denomination bug that prompted this fix.
+    const netAvailableByAssetTotal = perAsset
+      .filter((p) => p.isNative)
+      .reduce((sum, p) => sum.plus(p.netAvailable), new Prisma.Decimal(0));
+
+    const netReleasedAmount = totalReleased;
+
+    // `onChainTotal` is a backwards-compatible diagnostic exposed to
+    // clients: SUM of on-chain `balances[].balance` strings for native
+    // (XLM) assets only. Mirrors the behaviour callers would expect from
+    // the pre-fix endpoint when the campaign accepted only XLM.
+    const onChainTotal = perAsset
+      .filter((p) => p.isNative)
+      .reduce((sum, p) => sum.plus(p.grossOnChain), new Prisma.Decimal(0));
+
+    const storedRaisedAmount = new Prisma.Decimal(
+      campaign.raisedAmount.toString(),
+    );
+    const discrepancyDetected = netAvailableByAssetTotal
+      .minus(storedRaisedAmount)
+      .abs()
+      .gt(DISCREPANCY_TOLERANCE);
 
     return {
       contractId: campaign.contractId,
       balances,
-      storedRaisedAmount: campaign.raisedAmount.toString(),
+      perAsset,
+      netAvailableByAssetTotal: netAvailableByAssetTotal.toString(),
+      netReleasedAmount: netReleasedAmount.toString(),
       onChainTotal: onChainTotal.toString(),
+      storedRaisedAmount: storedRaisedAmount.toString(),
       discrepancyDetected,
     };
+  }
+
+  /**
+   * Sum the `amount` of every `FundRelease` row for this campaign whose
+   * status is APPROVED or RELEASED. Releases are conceptually XLM-denominated
+   * for accounting purposes because `Campaign.raisedAmount` and
+   * `Milestone.targetAmount` are stored in XLM-equivalent units.
+   *
+   * NOTE: A future schema migration that adds `assetCode`/`assetIssuer` to
+   * `FundRelease` would let us net per-asset instead. Today the field is not
+   * tracked, so we use this conservative single-bucket sum.
+   */
+  private async sumApprovedReleasedAmount(
+    campaignId: string,
+  ): Promise<Prisma.Decimal> {
+    const releases = await this.prisma.fundRelease.findMany({
+      where: {
+        campaignId,
+        status: { in: ['APPROVED', 'RELEASED'] },
+      },
+      select: { amount: true },
+    });
+
+    return releases.reduce(
+      (sum, r) =>
+        sum.plus(new Prisma.Decimal(r.amount.toString())),
+      new Prisma.Decimal(0),
+    );
   }
 
   /** Recalculate a campaign's raisedAmount from confirmed donations */
