@@ -107,7 +107,7 @@ export class QueueMaintenanceService implements OnModuleInit {
               data: {
                 queueName,
                 jobId: String(job.id),
-                payload: job.data as any,
+                payload: job.data,
                 errorMessage:
                   (job.stacktrace && job.stacktrace.join('\n')) ||
                   job.failedReason ||
@@ -126,7 +126,7 @@ export class QueueMaintenanceService implements OnModuleInit {
           }
 
           // remove the job from Redis
-          // eslint-disable-next-line @typescript-eslint/await-thenable
+
           await job.remove();
         }
       } catch (err) {

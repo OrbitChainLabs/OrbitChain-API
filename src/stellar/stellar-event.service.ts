@@ -150,7 +150,9 @@ export class StellarEventService implements OnApplicationBootstrap {
     if (this.streamCloseFn) {
       try {
         this.streamCloseFn();
-      } catch (e) {}
+      } catch (e) {
+        // Stream close failures during shutdown are non-fatal; nothing actionable here.
+      }
     }
 
     setTimeout(() => this.catchUpAndStartStream(), 5000);

@@ -27,32 +27,17 @@ export class AdminController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SuspendCampaignDto,
     @Request() req: any,
-  ): Promise<{ message: string }> {
-    return this.adminService.suspendCampaign(
+  ): Promise<{ message: string; notificationSent: boolean }> {
+    const result = await this.adminService.suspendCampaign(
       id,
       dto,
       req.user.sub,
       req.user.email,
     );
-  }
 
-  /**
-   * POST /admin/donations/:id/refund
-   * Refund a confirmed donation, atomically updating the campaign's raisedAmount.
-   * Only available to admin users.
-   */
-  @Post('donations/:id/refund')
-  @HttpCode(HttpStatus.OK)
-  async refundDonation(@Param('id', ParseUUIDPipe) id: string): Promise<{
-    id: string;
-    amount: string;
-    assetCode: string;
-    status: string;
-    campaignId: string;
-    donorId: string;
-    txHash: string | null;
-    refundedAt: Date;
-  }> {
-    return this.adminService.refundDonation(id);
+    // Note: If notificationSent is false, consider this a partial success
+    // The campaign is suspended but creator was not notified
+    // Frontend should check notificationSent flag and alert admin if false
+    return result;
   }
 }
