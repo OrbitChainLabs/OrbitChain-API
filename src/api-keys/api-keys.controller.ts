@@ -11,7 +11,7 @@ import {
 import { randomBytes, createHash } from 'crypto';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 
 interface JwtUser {

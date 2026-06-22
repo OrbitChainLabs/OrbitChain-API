@@ -4,7 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 
 /** Module providing admin campaign suspension, user moderation, and audit logging */
