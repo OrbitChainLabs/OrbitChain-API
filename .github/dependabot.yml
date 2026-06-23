@@ -1,0 +1,67 @@
+# Dependabot configuration
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# Weekly dependency updates to catch regressions like the npm audit failure
+# in https://github.com/OrbitChainLabs/OrbitChain-API/issues/40 before they
+# accumulate. Production and development dependencies are grouped separately
+# so security fixes to override-pinned transitive dependencies (form-data,
+# js-yaml, multer, uuid, ws, etc.) stay together and are easy to review.
+version: 2
+
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+      time: '06:00'
+      timezone: 'UTC'
+    # Always open at most one open Dependabot PR at a time so reviewers can
+    # focus; once merged, the next weekly run opens the next batch.
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'npm'
+    # Reuse the existing CI workflow for verification on every Dependabot PR.
+    # The `audit` job in .github/workflows/ci.yml gates merges on the same
+    # moderate-or-higher prod-dep bar, so this PR fails closed automatically
+    # if a future bump re-introduces an advisory.
+    commit-message:
+      prefix: 'deps'
+      include: 'scope'
+    # Group related bumps so a single PR contains them together.
+    groups:
+      production-security:
+        applies-to: version-updates
+        dependency-type: 'production'
+        patterns:
+          - 'form-data'
+          - 'js-yaml'
+          - 'multer'
+          - 'uuid'
+          - 'ws'
+          - '@sentry/*'
+          - 'nodemailer'
+        update-types:
+          - 'minor'
+          - 'patch'
+      production-major:
+        applies-to: version-updates
+        dependency-type: 'production'
+        update-types:
+          - 'major'
+      production-minor-patch:
+        applies-to: version-updates
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+      dev-dependencies:
+        applies-to: version-updates
+        dependency-type: 'development'
+        update-types:
+          - 'major'
+          - 'minor'
+          - 'patch'
+    # Pull requests fail CI if npm audit (production) reports moderate+ vulns.
+    # The `audit` job in .github/workflows/ci.yml provides that gate.
