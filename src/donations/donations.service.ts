@@ -252,6 +252,8 @@ export class DonationsService {
 
       if (!donation) return false;
 
+      const previousStatus = donation.status;
+
       const { rpc: sorobanRpc } = await import('@stellar/stellar-sdk');
       const server = new sorobanRpc.Server('https://soroban-rpc.stellar.org');
       const response = await server.getTransaction(txHash);
@@ -261,6 +263,11 @@ export class DonationsService {
           where: { txHash },
           data: { status: 'CONFIRMED', confirmedAt: new Date() },
         });
+
+        // If the donation was not already CONFIRMED, recalculate campaign stats
+        if (previousStatus !== 'CONFIRMED') {
+          await this.campaigns.recalculateCampaignStats(donation.campaignId);
+        }
 
         const updated = await this.prisma.donation.findUnique({
           where: { txHash },
@@ -275,6 +282,11 @@ export class DonationsService {
         }
 
         return true;
+      }
+
+      // Only flip to FAILED if it's not already CONFIRMED
+      if (previousStatus === 'CONFIRMED') {
+        return false;
       }
 
       await this.prisma.donation.update({
