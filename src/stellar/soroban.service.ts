@@ -12,6 +12,7 @@ import {
   Transaction,
   FeeBumpTransaction,
 } from '@stellar/stellar-sdk';
+import { AuthConfigService } from '../auth/auth-config.service';
 
 @Injectable()
 export class SorobanService {
@@ -20,14 +21,13 @@ export class SorobanService {
   private readonly serverKeypair?: Keypair;
   private readonly feeBumpKeypair?: Keypair;
 
-  constructor(private readonly config: ConfigService) {
-    const rpcUrl =
-      this.config.get<string>('STELLAR_RPC_URL') ||
-      'https://soroban-testnet.stellar.org:443';
+  constructor(
+    private readonly config: ConfigService,
+    private readonly authConfig: AuthConfigService,
+  ) {
+    const rpcUrl = this.authConfig.stellarRpcUrl;
     this.server = new rpc.Server(rpcUrl);
-    this.networkPassphrase =
-      this.config.get<string>('STELLAR_NETWORK_PASSPHRASE') ||
-      'Test SDF Network ; September 2015';
+    this.networkPassphrase = this.authConfig.stellarNetworkPassphrase;
 
     const serverSecret = this.config.get<string>('STELLAR_SERVER_SECRET');
     if (serverSecret) {

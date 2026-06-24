@@ -159,31 +159,31 @@ model ApiKey {
 
 /// Campaign model representing fundraising campaigns
 model Campaign {
-  id           String         @id @default(uuid())
-  title        String
-  description  String
-  story        String?
-  goalAmount   Decimal        @db.Decimal(20, 7)
-  raisedAmount Decimal        @default(0) @db.Decimal(20, 7)
-  status       CampaignStatus @default(DRAFT)
-  creatorId    String
-  contractId   String?
+  id             String         @id @default(uuid())
+  title          String
+  description    String
+  story          String?
+  goalAmount     Decimal        @db.Decimal(20, 7)
+  raisedAmount   Decimal        @default(0) @db.Decimal(20, 7)
+  status         CampaignStatus @default(DRAFT)
+  creatorId      String
+  contractId     String?
   acceptedAssets Json?
-  isFeatured   Boolean        @default(false)
-  startDate    DateTime?
-  endDate      DateTime?
-  imageUrl     String?
-  category     String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  isFeatured     Boolean        @default(false)
+  startDate      DateTime?
+  endDate        DateTime?
+  imageUrl       String?
+  category       String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   // Relations
-  creator      User            @relation("CampaignCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator      User           @relation("CampaignCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   donations    Donation[]
   milestones   Milestone[]
   updates      Update[]
   disputes     Dispute[]
-  contract   SmartContract?
+  contract     SmartContract?
   fundReleases FundRelease[]
 
   @@index([creatorId])
@@ -228,16 +228,16 @@ model Donation {
 
 /// PlatformTip model representing platform tips sent with donations
 model PlatformTip {
-  id           String    @id @default(uuid())
-  amount       Decimal   @db.Decimal(20, 7)
-  assetCode    String    @default("XLM")
-  txHash       String    @unique
-  status       TipStatus @default(PENDING)
-  donorId      String
-  donationId   String?  @unique
-  confirmedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(uuid())
+  amount      Decimal   @db.Decimal(20, 7)
+  assetCode   String    @default("XLM")
+  txHash      String    @unique
+  status      TipStatus @default(PENDING)
+  donorId     String
+  donationId  String?   @unique
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
   donor    User      @relation(fields: [donorId], references: [id], onDelete: Cascade)
@@ -265,8 +265,8 @@ model Milestone {
   updatedAt    DateTime        @updatedAt
 
   // Relations
-  campaign      Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  fundReleases  FundRelease[]
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  fundReleases FundRelease[]
 
   @@index([campaignId])
   @@index([status])
@@ -275,20 +275,20 @@ model Milestone {
 
 /// FundRelease model representing requests to release funds for milestones
 model FundRelease {
-  id            String            @id @default(uuid())
-  milestoneId   String
-  campaignId    String
-  creatorId     String
-  amount        Decimal           @db.Decimal(20, 7)
-  status        FundReleaseStatus @default(PENDING)
-  signaturePayload String?         // JSON stringified signature for on-chain verification
-  txHash        String?           @unique
-  releaseReason String?
-  approvedBy    String?           // Admin ID who approved (if applicable)
-  approvedAt    DateTime?
-  releasedAt    DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id               String            @id @default(uuid())
+  milestoneId      String
+  campaignId       String
+  creatorId        String
+  amount           Decimal           @db.Decimal(20, 7)
+  status           FundReleaseStatus @default(PENDING)
+  signaturePayload String? // JSON stringified signature for on-chain verification
+  txHash           String?           @unique
+  releaseReason    String?
+  approvedBy       String? // Admin ID who approved (if applicable)
+  approvedAt       DateTime?
+  releasedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   // Relations
   milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
@@ -395,10 +395,10 @@ model Newsletter {
 
 /// NotificationPreference model storing per-user notification channel toggles
 model NotificationPreference {
-  id        String   @id @default(uuid())
-  userId    String   @unique
+  id          String   @id @default(uuid())
+  userId      String   @unique
   /// JSON object structured as { donationReceived: { email: bool, inApp: bool }, milestoneUnlocked: { email: bool, inApp: bool }, ... }
-  preferences Json   @default("{\"donationReceived\":{\"email\":true,\"inApp\":true},\"milestoneUnlocked\":{\"email\":true,\"inApp\":true},\"campaignUpdate\":{\"email\":true,\"inApp\":true},\"campaignCreated\":{\"email\":true,\"inApp\":true},\"campaignCompleted\":{\"email\":true,\"inApp\":true}}")
+  preferences Json     @default("{\"donationReceived\":{\"email\":true,\"inApp\":true},\"milestoneUnlocked\":{\"email\":true,\"inApp\":true},\"campaignUpdate\":{\"email\":true,\"inApp\":true},\"campaignCreated\":{\"email\":true,\"inApp\":true},\"campaignCompleted\":{\"email\":true,\"inApp\":true}}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -442,7 +442,7 @@ model SmartContract {
   updatedAt       DateTime @updatedAt
 
   // Relations
-  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@map("contracts")

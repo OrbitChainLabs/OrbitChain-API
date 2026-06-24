@@ -7,8 +7,8 @@ import {
 } from '@nestjs/websockets';
 import { Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import type { Server, Socket } from 'socket.io';
+import { AuthConfigService } from '../auth/auth-config.service';
 
 /**
  * WebSocket gateway providing real-time notification events.
@@ -43,7 +43,7 @@ export class NotificationsGateway
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly authConfig: AuthConfigService,
   ) {}
 
   afterInit(): void {
@@ -65,10 +65,7 @@ export class NotificationsGateway
         throw new UnauthorizedException('Missing authentication token');
       }
 
-      const secret = this.configService.get<string>(
-        'JWT_SECRET',
-        'orbitchain-default-secret',
-      );
+      const secret = this.authConfig.jwtSecret;
 
       const payload = this.jwtService.verify(token, { secret });
 

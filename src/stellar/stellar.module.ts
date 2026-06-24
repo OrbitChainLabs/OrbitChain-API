@@ -3,11 +3,13 @@ import { SorobanService } from './soroban.service';
 import { StellarEventService } from './stellar-event.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { QueueModule } from '../queue/queue.module';
+import { StellarTransactionsService } from './stellar-transactions.service.js';
+import { AuthModule } from '../auth/auth.module';
 import { StellarTransactionsService } from './stellar-transactions.service';
 
 /** Module providing Stellar Horizon, Soroban, and transaction services */
 @Module({
-  imports: [PrismaModule, QueueModule],
+  imports: [PrismaModule, QueueModule, AuthModule],
   providers: [SorobanService, StellarEventService, StellarTransactionsService],
   exports: [SorobanService, StellarEventService, StellarTransactionsService],
 })

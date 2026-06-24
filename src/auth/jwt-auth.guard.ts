@@ -5,14 +5,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { AuthConfigService } from './auth-config.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
-    private readonly config: ConfigService,
+    private readonly authConfig: AuthConfigService,
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -32,10 +32,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const payload = this.jwt.verify(token, {
-        secret: this.config.get<string>(
-          'JWT_SECRET',
-          'orbitchain-default-secret',
-        ),
+        secret: this.authConfig.jwtSecret,
       });
       request.user = payload as Record<string, unknown>;
       return true;
