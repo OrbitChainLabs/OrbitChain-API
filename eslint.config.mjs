@@ -48,7 +48,7 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/restrict-template-expressions': 'warn',
       '@typescript-eslint/prefer-as-const': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "lf" }],
+      'prettier/prettier': ['error', { endOfLine: 'lf' }],
     },
   },
 );

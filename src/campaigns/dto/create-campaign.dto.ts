@@ -1,3 +1,4 @@
+import { AcceptedAssetInput } from './accepted-asset-input.dto';
 import {
   IsOptional,
   IsString,
@@ -8,35 +9,35 @@ import {
   IsNumberString,
   Matches,
   ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class MilestoneInput {
   @IsString()
-  title: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
   description?: string;
 
-  // Accept numeric strings to preserve precision for Decimal columns.
   @IsNotEmpty()
   @IsNumberString()
   @Matches(/^(?=.*[1-9])\d+(?:\.\d+)?$/, {
     message: 'targetAmount must be greater than 0',
   })
-  targetAmount: string;
+  targetAmount!: string;
 
   @IsOptional()
   @IsString()
-  dueDate?: string; // ISO date string
+  dueDate?: string;
 }
 
 /** DTO for creating a new fundraising campaign */
 export class CreateCampaignDto {
   @IsString()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
@@ -66,7 +67,10 @@ export class CreateCampaignDto {
 
   @IsOptional()
   @IsArray()
-  acceptedAssets?: string[];
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => AcceptedAssetInput)
+  acceptedAssets?: AcceptedAssetInput[];
 
   @IsOptional()
   @IsString()
