@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { maskEmail } from './email.utils';
 
 export interface EmailTemplate {
   subject: string;
@@ -25,6 +26,8 @@ export class EmailService {
   private transporter: Transporter | null = null;
   private readonly fromAddress: string;
   private readonly appBaseUrl: string;
+  private readonly nodeEnv: string;
+  private readonly emailPreviewEnabled: boolean;
 
   constructor(private readonly config: ConfigService) {
     this.fromAddress = config.get<string>(
@@ -35,6 +38,12 @@ export class EmailService {
       'APP_BASE_URL',
       'http://localhost:3000',
     );
+    this.nodeEnv = config.get<string>('NODE_ENV', 'development');
+    // Opt-in only: previewing the rendered email body in logs can leak PII
+    // (donor names, emails, donation amounts). Never honoured in production.
+    this.emailPreviewEnabled =
+      this.nodeEnv !== 'production' &&
+      config.get<string>('EMAIL_PREVIEW', '0') === '1';
   }
 
   private getTransporter(): Transporter {
@@ -98,8 +107,17 @@ export class EmailService {
     try {
       const info = await transporter.sendMail(mailOptions);
       this.logger.log(
-        `Email sent to ${options.to}: ${options.subject} (id=${info.messageId})`,
+        `Email sent to ${maskEmail(options.to)}: ${options.subject} (id=${info.messageId})`,
       );
+
+
+      // Dev-only, explicit opt-in preview. Never logs the HTML body, and
+      // never runs in production regardless of how EMAIL_PREVIEW is set.
+      if (this.emailPreviewEnabled && info.messageId) {
+        this.logger.debug(
+          `Email preview (subject/recipient only): subject="${options.subject}" to=${maskEmail(options.to)}`,
+        );
+      }
 
       // In dev mode with jsonTransport, log the message content
       if (info.messageId && info.message) {
@@ -107,7 +125,7 @@ export class EmailService {
       }
     } catch (error) {
       this.logger.error(
-        `Failed to send email to ${options.to}: ${(error as Error).message}`,
+        `Failed to send email to ${maskEmail(options.to)}: ${(error as Error).message}`,
       );
       throw error;
     }

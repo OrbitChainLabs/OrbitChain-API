@@ -4,6 +4,7 @@ import type { Job } from 'bull';
 import { QUEUE_EMAIL } from '../queue/queue.constants';
 import { EmailService } from './email.service';
 import { NotificationsService } from './notifications.service';
+import { maskEmail } from './email.utils';
 
 export interface EmailJobData {
   to: string;
@@ -28,7 +29,7 @@ export class EmailProcessor {
   async handleSendEmail(job: Job<EmailJobData>): Promise<void> {
     const { to, subject, html, preferenceKey, userId } = job.data;
 
-    this.logger.log(`Processing email job ${job.id}: ${subject} -> ${to}`);
+    this.logger.log(`Processing email job ${job.id}: ${subject} -> ${maskEmail(to)}`);
 
     // If a preference key is provided, check user's notification preferences first
     if (preferenceKey && userId) {
@@ -38,7 +39,7 @@ export class EmailProcessor {
       );
       if (!shouldSend) {
         this.logger.log(
-          `Skipping email to ${to}: user has disabled ${preferenceKey} email notifications`,
+          `Skipping email to ${maskEmail(to)}: user has disabled ${preferenceKey} email notifications`,
         );
         return;
       }

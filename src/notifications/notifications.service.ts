@@ -4,6 +4,7 @@ import type { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUE_EMAIL } from '../queue/queue.constants';
 import type { EmailJobData } from './email.processor';
+import { maskEmail } from './email.utils';
 import {
   donationReceivedTemplate,
   milestoneUnlockedTemplate,
@@ -114,7 +115,7 @@ export class NotificationsService {
     };
 
     await this.emailQueue.add('send-email', jobData);
-    this.logger.log(`Queued donation received email to ${payload.toEmail}`);
+    this.logger.log(`Queued donation received email to ${maskEmail(payload.toEmail)}`);
   }
 
   /** Queue a milestone unlocked email via Bull for async processing */
@@ -137,7 +138,7 @@ export class NotificationsService {
     };
 
     await this.emailQueue.add('send-email', jobData);
-    this.logger.log(`Queued milestone unlocked email to ${payload.toEmail}`);
+    this.logger.log(`Queued milestone unlocked email to ${maskEmail(payload.toEmail)}`);
   }
 
   /** Queue a campaign update email via Bull for async processing */
@@ -159,7 +160,7 @@ export class NotificationsService {
     };
 
     await this.emailQueue.add('send-email', jobData);
-    this.logger.log(`Queued campaign update email to ${payload.toEmail}`);
+    this.logger.log(`Queued campaign update email to ${maskEmail(payload.toEmail)}`);
   }
 
   /**
@@ -220,7 +221,11 @@ export class NotificationsService {
     });
 
     this.logger.log(
+
+      `[EMAIL] To: ${maskEmail(payload.toEmail)} | Subject: Your campaign "${payload.campaignTitle}" has been suspended | Reason: ${payload.reason}`,
+
       `Created in-app notification for creator ${payload.creatorId} about campaign ${payload.campaignId} suspension`,
+
     );
   }
 
