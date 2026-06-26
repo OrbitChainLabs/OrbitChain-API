@@ -16,6 +16,8 @@ import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import type { CreateUpdateDto } from './dto/create-update.dto';
 import { ContractBalanceResponseDto } from './dto/contract-balance.dto';
 
+const MIN_MILESTONE_TARGET_AMOUNT = 0.0000001;
+
 @Injectable()
 export class CampaignsService {
   constructor(
@@ -36,7 +38,7 @@ export class CampaignsService {
     const milestoneCreates = (dto.milestones || []).map((m) => ({
       title: m.title,
       description: m.description ?? null,
-      targetAmount: (m.targetAmount ?? 0) as any,
+      targetAmount: parseMilestoneTargetAmount(m.targetAmount),
       dueDate: m.dueDate ? new Date(m.dueDate) : undefined,
     }));
 
@@ -246,21 +248,27 @@ export class CampaignsService {
     };
   }
 
-  /** Recalculate a campaign's raisedAmount from confirmed donations */
+  /**
+   * Recalculate a campaign's raisedAmount from confirmed donations.
+   * Uses a Prisma $transaction to ensure the aggregate read and campaign
+   * update happen atomically.
+   */
   async recalculateCampaignStats(campaignId: string) {
-    const agg = await this.prisma.donation.aggregate({
-      where: {
-        campaignId,
-        status: 'CONFIRMED',
-      },
-      _sum: { amount: true },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      const agg = await tx.donation.aggregate({
+        where: {
+          campaignId,
+          status: 'CONFIRMED',
+        },
+        _sum: { amount: true },
+      });
 
-    const raisedAmount = agg._sum.amount ?? new Prisma.Decimal(0);
+      const raisedAmount = agg._sum.amount ?? new Prisma.Decimal(0);
 
-    await this.prisma.campaign.update({
-      where: { id: campaignId },
-      data: { raisedAmount },
+      await tx.campaign.update({
+        where: { id: campaignId },
+        data: { raisedAmount },
+      });
     });
   }
 
@@ -444,6 +452,23 @@ export class CampaignsService {
 
     return { data: ordered, total, page, limit };
   }
+}
+
+function parseMilestoneTargetAmount(targetAmount?: string) {
+  const raw = targetAmount?.trim();
+  const amount = raw ? Number(raw) : Number.NaN;
+
+  if (
+    !raw ||
+    !Number.isFinite(amount) ||
+    amount < MIN_MILESTONE_TARGET_AMOUNT
+  ) {
+    throw new BadRequestException(
+      `milestone targetAmount is required and must be at least ${MIN_MILESTONE_TARGET_AMOUNT}`,
+    );
+  }
+
+  return raw;
 }
 
 function campaignBrowseSelect() {
