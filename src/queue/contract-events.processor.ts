@@ -58,15 +58,18 @@ export class ContractEventsProcessor {
     const { eventType, topics, value, contractId, txHash } = data;
 
     switch (eventType) {
-      case 'DonationReceived':
+      case 'DonationReceived': {
         const donorAddress = topics[1] as string | undefined;
         if (!donorAddress) {
-          this.logger.warn(`DonationReceived tx=${txHash}: no donor address in topics`);
+          this.logger.warn(
+            `DonationReceived tx=${txHash}: no donor address in topics`,
+          );
           break;
         }
-        const amount = typeof value === 'object' && value !== null && 'amount' in value
-          ? Number((value as Record<string, unknown>).amount)
-          : undefined;
+        const amount =
+          typeof value === 'object' && value !== null && 'amount' in value
+            ? Number((value as Record<string, unknown>).amount)
+            : undefined;
 
         await this.prisma.donation.updateMany({
           where: { txHash, status: 'PENDING' },
@@ -77,6 +80,7 @@ export class ContractEventsProcessor {
           `Confirmed donation tx=${txHash} ${amount ? `amount=${amount} ` : ''}donor=${donorAddress}`,
         );
         break;
+      }
 
       case 'MilestoneReleased':
         await this.prisma.milestone.updateMany({

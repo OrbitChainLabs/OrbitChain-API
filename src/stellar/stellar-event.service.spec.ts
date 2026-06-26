@@ -25,7 +25,7 @@ describe('StellarEventService — cursor persistence', () => {
         if (key === 'STELLAR_NETWORK') return undefined;
         return fallback;
       }),
-    } as any;
+    };
   }
 
   async function createService(): Promise<StellarEventService> {
@@ -94,10 +94,11 @@ describe('StellarEventService — cursor persistence', () => {
       mockConfig = {
         get: jest.fn((key: string) => {
           if (key === 'STELLAR_NETWORK') return 'custom-network';
-          if (key === 'STELLAR_HORIZON_URL') return 'https://horizon-testnet.stellar.org';
+          if (key === 'STELLAR_HORIZON_URL')
+            return 'https://horizon-testnet.stellar.org';
           return undefined;
         }),
-      } as any;
+      };
       const svc = await createService();
       expect((svc as any).network).toBe('custom-network');
     });
