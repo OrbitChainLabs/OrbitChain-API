@@ -71,24 +71,38 @@ export class ContractEventsProcessor {
             ? Number((value as Record<string, unknown>).amount)
             : undefined;
 
-        await this.prisma.donation.updateMany({
+        const donationResult = await this.prisma.donation.updateMany({
           where: { txHash, status: 'PENDING' },
           data: { status: 'CONFIRMED', confirmedAt: new Date() },
         });
 
-        this.logger.log(
-          `Confirmed donation tx=${txHash} ${amount ? `amount=${amount} ` : ''}donor=${donorAddress}`,
-        );
+        if (donationResult.count === 0) {
+          this.logger.warn(
+            `DonationReceived tx=${txHash}: no pending donation found to confirm`,
+          );
+        } else {
+          this.logger.log(
+            `Confirmed donation tx=${txHash} ${amount ? `amount=${amount} ` : ''}donor=${donorAddress}`,
+          );
+        }
         break;
       }
 
       case 'MilestoneReleased':
-        await this.prisma.milestone.updateMany({
-          where: { txHash, status: 'PENDING' },
-          data: { status: 'COMPLETED', completedAt: new Date() },
-        });
+        {
+          const milestoneResult = await this.prisma.milestone.updateMany({
+            where: { txHash, status: 'PENDING' },
+            data: { status: 'COMPLETED', completedAt: new Date() },
+          });
 
-        this.logger.log(`Completed milestone tx=${txHash}`);
+          if (milestoneResult.count === 0) {
+            this.logger.warn(
+              `MilestoneReleased tx=${txHash}: no pending milestone found to complete`,
+            );
+          } else {
+            this.logger.log(`Completed milestone tx=${txHash}`);
+          }
+        }
         break;
 
       default:
