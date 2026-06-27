@@ -42,6 +42,13 @@ export class StellarEventService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    if (process.env.NODE_ENV === 'test') {
+      this.logger.log(
+        'Skipping Stellar event listener initialization in test environment',
+      );
+      return;
+    }
+
     this.logger.log('Starting Stellar Event Listener Service...');
 
     // Load last cursor from cache

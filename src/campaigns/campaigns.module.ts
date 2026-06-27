@@ -7,7 +7,7 @@ import { CampaignsService } from './campaigns.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { StellarModule } from '../stellar/stellar.module';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../users/guards/jwt-auth.guard';
 import { AdminGuard } from '../users/guards/admin.guard';
 import { DonationsModule } from '../donations/donations.module';
 
