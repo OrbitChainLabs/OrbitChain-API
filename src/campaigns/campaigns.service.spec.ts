@@ -21,7 +21,7 @@ describe('CampaignsService milestone target validation', () => {
   };
 
   it.each([
-    ['missing', undefined],
+    ['missing', undefined as string | undefined],
     ['zero', '0'],
     ['zero decimal', '0.0000000'],
     ['below the minimum precision', '0.00000001'],
@@ -34,7 +34,7 @@ describe('CampaignsService milestone target validation', () => {
         milestones: [
           {
             title: 'Prototype',
-            targetAmount,
+            targetAmount: targetAmount as string,
           },
         ],
       }),

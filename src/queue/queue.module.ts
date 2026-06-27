@@ -10,6 +10,7 @@ import {
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
 import { QueueMaintenanceService } from './queue-maintenance.service';
+import { ContractEventsProcessor } from './contract-events.processor';
 
 const DEAD_LETTER_SETTINGS = {
   attempts: 3,
@@ -40,7 +41,7 @@ const DEAD_LETTER_SETTINGS = {
     ScheduleModule.forRoot(),
     PrismaModule,
   ],
-  providers: [QueueMaintenanceService],
+  providers: [QueueMaintenanceService, ContractEventsProcessor],
   exports: [BullModule],
 })
 export class QueueModule {}
