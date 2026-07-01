@@ -447,3 +447,18 @@ model SmartContract {
   @@index([campaignId])
   @@map("contracts")
 }
+
+/// DeadLetter model stores pruned failed Bull jobs for audit and analysis.
+model DeadLetter {
+  id         String   @id @default(uuid())
+  queueName  String
+  jobId      String
+  payload    Json
+  errorMessage String?
+  failedAt   DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([queueName])
+  @@index([failedAt])
+  @@map("dead_letters")
+}
